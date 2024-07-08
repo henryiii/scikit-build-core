@@ -1,0 +1,20 @@
+tag: [ pytest ]
+require:
+  - pipx
+  - cmake
+path: /
+test: |
+  set -x
+  
+  pipx run uv pip compile --no-deps \
+    -o requirements.txt \
+    --extra test \
+    ./pyproject.toml
+  
+  # Install requirements from Fedora
+  dnf install -y $(sed -nr "s/(.*)==.*/python3dist\(\1\)/p"  requirements.txt)
+
+/all:
+  summary: All pytest
+  test+: |
+    python3 -m pytest

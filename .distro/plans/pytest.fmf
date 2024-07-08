@@ -1,0 +1,5 @@
+summary: Upstream pytest
+discover+:
+  filter: "tag: pytest"
+execute:
+  how: tmt
