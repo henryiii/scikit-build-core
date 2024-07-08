@@ -8,4 +8,4 @@ require:
   - tree
 framework: beakerlib
 path: /
-test: ./examples/test.sh
+test: ./docs/examples/test.sh
