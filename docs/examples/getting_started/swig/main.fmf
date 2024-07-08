@@ -1,4 +1,3 @@
-summary:
-  Swig example project
+summary+: " (Swig)"
 require+:
   - swig

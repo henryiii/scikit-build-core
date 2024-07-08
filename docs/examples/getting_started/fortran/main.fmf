@@ -1,5 +1,4 @@
-summary:
-  F2PY example project
+summary+: " (F2PY)"
 require+:
   - gcc-gfortran
   - python3-numpy

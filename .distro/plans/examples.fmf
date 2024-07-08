@@ -1,5 +1,4 @@
-summary:
-  Documentation examples
+summary: Documentation examples
 discover+:
   filter: "tag: examples"
 execute:
