@@ -18,3 +18,14 @@ test: |
   summary: All pytest
   test+: |
     python3 -m pytest
+
+/freethreading:
+  summary: All tests under freethreading
+  require+:
+    - python3-freethreading
+  test+: |
+    python3t -m pytest
+  adjust:
+    when: distro != fedora-rawhide
+    because: Python3.13 was introduced in F41
+    enabled: false
