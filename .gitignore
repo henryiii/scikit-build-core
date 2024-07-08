@@ -170,10 +170,6 @@ ehthumbs.db
 Thumbs.db
 
 .idea/
-# tmt setup
-/.distro/main.fmf
-/.distro/plans/main.fmf
-/.distro/tests/main.fmf
 
 /docs/**/build
 .vscode/

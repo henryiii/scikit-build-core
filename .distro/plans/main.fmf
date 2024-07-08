@@ -1,0 +1,7 @@
+adjust+:
+  # Cannot use initiator: fedora-ci reliably yet
+  when: initiator is not defined or initiator != packit
+  discover+:
+    how: fmf
+    dist-git-source: true
+    dist-git-extract: scikit_build_core-*/

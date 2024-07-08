@@ -4,24 +4,16 @@
 specfile_path: .distro/python-scikit-build-core.spec
 
 files_to_sync:
-  - src: .distro/python-scikit-build-core.spec
-    dest: python-scikit-build-core.spec
-  - .packit.yaml
-  - src: .distro/python-scikit-build-core.rpmlintrc
-    dest: python-scikit-build-core.rpmlintrc
-  # tmt setup
-  - src: .distro/.fmf/
-    dest: .fmf/
-  - src: .distro/plans/
-    dest: plans/
+  - src: .distro/
+    dest: ./
+    delete: true
     filters:
-      - "- main.fmf.dist-git"
-      - "- rpminspect.fmf"
-      - "- rpmlint.fmf"
-  - src: .distro/tests/
-    dest: tests/
-  - src: .distro/plans/main.fmf.dist-git
-    dest: plans/main.fmf
+      - "protect .git*"
+      - "protect sources"
+      - "protect changelog"
+      - "- plans/rpminspect.fmf"
+      - "- plans/rpmlint.fmf"
+  - .packit.yaml
 upstream_package_name: scikit_build_core
 downstream_package_name: python-scikit-build-core
 update_release: false
