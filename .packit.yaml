@@ -16,7 +16,6 @@ files_to_sync:
   - .packit.yaml
 upstream_package_name: scikit_build_core
 downstream_package_name: python-scikit-build-core
-update_release: false
 upstream_tag_template: v{version}
 
 targets: &targets
@@ -42,9 +41,6 @@ jobs:
     branch: main
   - <<: *copr_build
     trigger: pull_request
-    project: scikit-build-core
-    update_release: true
-    release_suffix: "{PACKIT_RPMSPEC_RELEASE}"
   - <<: *tests
     trigger: pull_request
   - job: propose_downstream
