@@ -27,19 +27,19 @@ downstream_package_name: python-scikit-build-core
 update_release: false
 upstream_tag_template: v{version}
 
+targets: &targets
+  - fedora-all-x86_64
+  - fedora-all-aarch64
+
 jobs:
   - &copr_build
     job: copr_build
     trigger: release
     owner: "@scikit-build"
     project: release
-    targets: &targets
-      - fedora-all-x86_64
-      - fedora-all-aarch64
   - &tests
     job: tests
     trigger: release
-    targets: *targets
     fmf_path: .distro
   - <<: *copr_build
     trigger: commit
