@@ -1,8 +1,3 @@
-# See the documentation for more information:
-# https://packit.dev/docs/configuration/
-
-specfile_path: .distro/python-scikit-build-core.spec
-
 files_to_sync:
   - src: .distro/
     dest: ./
@@ -14,7 +9,9 @@ files_to_sync:
       - "- plans/rpminspect.fmf"
       - "- plans/rpmlint.fmf"
   - .packit.yaml
-upstream_package_name: scikit_build_core
+
+upstream_package_name: scikit-build-core
+specfile_path: .distro/python-scikit-build-core.spec
 downstream_package_name: python-scikit-build-core
 upstream_tag_template: v{version}
 
