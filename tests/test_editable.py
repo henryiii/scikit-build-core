@@ -1,5 +1,6 @@
 import sys
 from pathlib import Path
+import textwrap
 
 import pytest
 from conftest import PackageInfo, process_package
@@ -105,3 +106,58 @@ def test_cython_pxd(monkeypatch, tmp_path, editable, editable_mode, isolated):
         *editable_flag,
         ".",
     )
+
+
+@pytest.mark.compile()
+@pytest.mark.configure()
+@pytest.mark.integration()
+@pytest.mark.parametrize(
+    ("editable", "editable_mode"), [(False, ""), (True, "redirect"), (True, "inplace")]
+)
+def test_importlib_resources(monkeypatch, tmp_path, editable, editable_mode, isolated):
+    editable_flag = ["-e"] if editable else []
+
+    config_mode_flags = []
+    if editable:
+        config_mode_flags.append(f"--config-settings=editable.mode={editable_mode}")
+    if editable_mode != "inplace":
+        config_mode_flags.append("--config-settings=build-dir=build/{wheel_tag}")
+
+    # Use a context so that we only change into the directory up until the point where
+    # we run the editable install. We do not want to be in that directory when importing
+    # to avoid importing the source directory instead of the installed package.
+    with monkeypatch.context() as m:
+        package1 = PackageInfo(
+            "importlib_editable",
+        )
+        process_package(package1, tmp_path, m)
+
+        ninja = [
+            "ninja" for f in isolated.wheelhouse.iterdir() if f.name.startswith("ninja-")
+        ]
+        cmake = [
+            "cmake" for f in isolated.wheelhouse.iterdir() if f.name.startswith("cmake-")
+        ]
+
+        isolated.install("pip>23")
+        isolated.install("scikit-build-core", *ninja, *cmake)
+
+        isolated.install(
+            "-v",
+            *config_mode_flags,
+            "--no-build-isolation",
+            *editable_flag,
+            ".",
+        )
+
+    value = isolated.execute(
+        textwrap.dedent(
+            """
+            import importlib.resources
+            import example
+            root = importlib.resources.files(example)
+            print(any('testfile' in str(x) for x in root.iterdir()))
+            """
+        )
+    )
+    assert value == "True"
