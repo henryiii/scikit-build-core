@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import importlib.abc
-import importlib.util
 import importlib.machinery
-import importlib.readers # Might be Python version specific?
+import importlib.readers  # Might be Python version specific?
+import importlib.util
 import os
 import subprocess
 import sys
@@ -115,7 +115,9 @@ class ScikitBuildRedirectingFinder(importlib.abc.MetaPathFinder):
                 fullname,
                 os.path.join(self.dir, redir),
                 submodule_search_locations=submodule_search_locations,
-                loader=ScikitBuildRedirectingLoader(fullname, os.path.join(self.dir, redir)),
+                loader=ScikitBuildRedirectingLoader(
+                    fullname, os.path.join(self.dir, redir)
+                ),
             )
         if fullname in self.known_source_files:
             redir = self.known_source_files[fullname]

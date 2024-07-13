@@ -1,6 +1,6 @@
 import sys
-from pathlib import Path
 import textwrap
+from pathlib import Path
 
 import pytest
 from conftest import PackageInfo, process_package
@@ -133,10 +133,14 @@ def test_importlib_resources(monkeypatch, tmp_path, editable, editable_mode, iso
         process_package(package1, tmp_path, m)
 
         ninja = [
-            "ninja" for f in isolated.wheelhouse.iterdir() if f.name.startswith("ninja-")
+            "ninja"
+            for f in isolated.wheelhouse.iterdir()
+            if f.name.startswith("ninja-")
         ]
         cmake = [
-            "cmake" for f in isolated.wheelhouse.iterdir() if f.name.startswith("cmake-")
+            "cmake"
+            for f in isolated.wheelhouse.iterdir()
+            if f.name.startswith("cmake-")
         ]
 
         isolated.install("pip>23")
