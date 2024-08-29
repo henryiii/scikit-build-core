@@ -1,5 +1,4 @@
-summary:
-  Pybind example project
+summary+: " (pybind11)"
 require+:
   - gcc-c++
   - pybind11-devel

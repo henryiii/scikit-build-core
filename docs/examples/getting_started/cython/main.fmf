@@ -1,4 +1,3 @@
-summary:
-  Cython example project
+summary+: " (cython)"
 require+:
   - python3-cython

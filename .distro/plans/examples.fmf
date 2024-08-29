@@ -1,8 +1,5 @@
-summary:
-  Documentation examples
+summary: Documentation examples
 discover+:
-  how: fmf
   filter: "tag: examples"
-  path: docs
 execute:
   how: tmt

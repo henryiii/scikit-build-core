@@ -1,5 +1,4 @@
-summary:
-  Nanobind downstream example
+summary+: " (nanobind)"
 adjust:
   enabled: false
   because: Nanobind is not yet packaged on Fedora
