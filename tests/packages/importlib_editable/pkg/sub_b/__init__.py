@@ -9,15 +9,15 @@ from . import pmod_c
 from . import emod_c
 
 # Level one subpackages
-from . import subsubpkg1, subsubpkg2
+from . import sub_c, sub_d
 
 # Level two pure modules
-from .subsubpkg1 import pmod_d
-from .subsubpkg2 import pmod_e
+from .sub_c import pmod_d
+from .sub_d import pmod_e
 
 # Level two extension modules
-from .subsubpkg1 import emod_d
-from .subsubpkg2 import emod_e
+from .sub_c import emod_d
+from .sub_d import emod_e
 
 __all__ = [
     "emod_c",
@@ -26,6 +26,6 @@ __all__ = [
     "pmod_c",
     "pmod_d",
     "pmod_e",
-    "subsubpkg1",
-    "subsubpkg2",
+    "sub_c",
+    "sub_d",
 ]
