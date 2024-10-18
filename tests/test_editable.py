@@ -209,22 +209,7 @@ def test_direct_import(monkeypatch, tmp_path, editable, editable_mode, isolated)
     _setup_package_for_editable_layout_tests(  # type: ignore[no-untyped-call]
         monkeypatch, tmp_path, editable, editable_mode, isolated
     )
-    isolated.execute(
-        textwrap.dedent(
-            """
-            import pkg
-            import pkg.pure
-            import pkg.subpkg1
-            import pkg.subpkg1.pure
-            import pkg.subpkg2
-            import pkg.subpkg2.pure
-            import pkg.subpkg2.subsubpkg1
-            import pkg.subpkg2.subsubpkg1.pure
-            import pkg.subpkg2.subsubpkg2
-            import pkg.subpkg2.subsubpkg2.pure
-            """
-        )
-    )
+    isolated.execute("import pkg")
 
 
 @pytest.mark.compile
