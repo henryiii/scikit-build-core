@@ -331,16 +331,14 @@ def test_importlib_resources(
     _setup_package_for_editable_layout_tests(  # type: ignore[no-untyped-call]
         monkeypatch, tmp_path, editable, editable_mode, isolated
     )
-    value = isolated.execute(
+    isolated.execute(
         textwrap.dedent(
             f"""
             from importlib.resources import files
             from importlib.readers import MultiplexedPath
             import pkg
             import pathlib
-            print({check})
+            assert {check}
             """
         )
     )
-
-    assert value == "True"
