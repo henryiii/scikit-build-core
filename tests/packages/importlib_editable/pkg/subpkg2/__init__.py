@@ -1,3 +1,3 @@
-from . import pure, subpkg2, subsubpkg1, subsubpkg2
+from . import emod_c, pmod_c, subsubpkg1, subsubpkg2
 
-__all__ = ["pure", "subpkg2", "subsubpkg1", "subsubpkg2"]
+__all__ = ["emod_c", "pmod_c", "subsubpkg1", "subsubpkg2"]

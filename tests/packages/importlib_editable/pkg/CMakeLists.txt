@@ -1,6 +1,6 @@
-python_add_library(pkg MODULE pkg.c WITH_SOABI)
+python_add_library(emod_a MODULE emod_a.c WITH_SOABI)
 
-install(TARGETS pkg DESTINATION pkg/)
+install(TARGETS emod_a DESTINATION pkg/)
 file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/testfile" "This is the file")
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/testfile" DESTINATION pkg/)
 

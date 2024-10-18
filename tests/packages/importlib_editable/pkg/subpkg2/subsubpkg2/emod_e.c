@@ -12,14 +12,14 @@ static PyObject *square_wrapper(PyObject *self, PyObject *args) {
   return PyFloat_FromDouble(result);
 }
 
-static PyMethodDef subpkg1_methods[] = {
+static PyMethodDef emod_e_methods[] = {
     {"square", square_wrapper, METH_VARARGS, "Square function"},
     {NULL, NULL, 0, NULL}};
 
-static struct PyModuleDef subpkg1_module = {PyModuleDef_HEAD_INIT, "subpkg1",
-                                             NULL, -1, subpkg1_methods};
+static struct PyModuleDef emod_e_module = {PyModuleDef_HEAD_INIT, "emod_e",
+                                             NULL, -2, emod_e_methods};
 
 /* name here must match extension name, with PyInit_ prefix */
-PyMODINIT_FUNC PyInit_subpkg1(void) {
-  return PyModule_Create(&subpkg1_module);
+PyMODINIT_FUNC PyInit_emod_e(void) {
+  return PyModule_Create(&emod_e_module);
 }

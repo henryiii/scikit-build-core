@@ -1,3 +1,3 @@
-from . import pure, subsubpkg2
+from . import emod_e, pmod_e
 
-__all__ = ["pure", "subsubpkg2"]
+__all__ = ["pmod_e", "emod_e"]
