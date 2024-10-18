@@ -6,4 +6,8 @@ find_package(
   COMPONENTS Interpreter Development.Module
   REQUIRED)
 
+python_add_library(emod MODULE emod.c WITH_SOABI)
+install(TARGETS emod DESTINATION .)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/pmod.py" DESTINATION .)
+
 add_subdirectory(pkg)
