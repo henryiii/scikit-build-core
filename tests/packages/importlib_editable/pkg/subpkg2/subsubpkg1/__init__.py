@@ -1,3 +1,3 @@
-from . import pure
+from . import pure, subsubpkg1
 
-__all__ = ["pure"]
+__all__ = ["pure", "subsubpkg1"]
