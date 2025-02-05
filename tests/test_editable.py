@@ -156,3 +156,174 @@ def test_install_dir(isolated):
     assert "Running cmake" in out
     assert c_module.exists()
     assert not failed_c_module.exists()
+
+
+def _setup_package_for_editable_layout_tests(
+    monkeypatch, tmp_path, editable, editable_mode, isolated
+):
+    editable_flag = ["-e"] if editable else []
+
+    config_mode_flags = []
+    if editable:
+        config_mode_flags.append(f"--config-settings=editable.mode={editable_mode}")
+    if editable_mode != "inplace":
+        config_mode_flags.append("--config-settings=build-dir=build/{wheel_tag}")
+
+    # Use a context so that we only change into the directory up until the point where
+    # we run the editable install. We do not want to be in that directory when importing
+    # to avoid importing the source directory instead of the installed package.
+    with monkeypatch.context() as m:
+        package = PackageInfo("importlib_editable")
+        process_package(package, tmp_path, m)
+
+        ninja = [
+            "ninja"
+            for f in isolated.wheelhouse.iterdir()
+            if f.name.startswith("ninja-")
+        ]
+        cmake = [
+            "cmake"
+            for f in isolated.wheelhouse.iterdir()
+            if f.name.startswith("cmake-")
+        ]
+
+        isolated.install("pip>23")
+        isolated.install("scikit-build-core", *ninja, *cmake)
+
+        isolated.install(
+            "-v",
+            *config_mode_flags,
+            "--no-build-isolation",
+            *editable_flag,
+            ".",
+        )
+
+
+@pytest.mark.compile
+@pytest.mark.configure
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("editable", "editable_mode"), [(False, ""), (True, "redirect"), (True, "inplace")]
+)
+def test_direct_import(monkeypatch, tmp_path, editable, editable_mode, isolated):
+    _setup_package_for_editable_layout_tests(  # type: ignore[no-untyped-call]
+        monkeypatch, tmp_path, editable, editable_mode, isolated
+    )
+    isolated.execute("import pkg")
+
+
+@pytest.mark.compile
+@pytest.mark.configure
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    ("editable", "editable_mode", "check"),
+    [
+        # Without editable
+        (False, "", "isinstance(files(pkg), pathlib.Path)"),
+        (False, "", "any(str(x).endswith('.so') for x in files(pkg).iterdir())"),
+        (False, "", "isinstance(files(pkg.sub_a), pathlib.Path)"),
+        (
+            False,
+            "",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_a).iterdir())",
+        ),
+        (False, "", "isinstance(files(pkg.sub_b), pathlib.Path)"),
+        (
+            False,
+            "",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_b).iterdir())",
+        ),
+        (False, "", "isinstance(files(pkg.sub_b.sub_c), pathlib.Path)"),
+        (
+            False,
+            "",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_b.sub_c).iterdir())",
+        ),
+        (False, "", "isinstance(files(pkg.sub_b.sub_d), pathlib.Path)"),
+        (
+            False,
+            "",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_b.sub_d).iterdir())",
+        ),
+        # Editable redirect
+        (True, "redirect", "isinstance(files(pkg), pathlib.Path)"),
+        pytest.param(
+            True,
+            "redirect",
+            "any(str(x).endswith('.so') for x in files(pkg).iterdir())",
+            marks=pytest.mark.xfail,
+        ),
+        (True, "redirect", "isinstance(files(pkg.sub_a), pathlib.Path)"),
+        pytest.param(
+            True,
+            "redirect",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_a).iterdir())",
+            marks=pytest.mark.xfail,
+        ),
+        (True, "redirect", "isinstance(files(pkg.sub_b), pathlib.Path)"),
+        pytest.param(
+            True,
+            "redirect",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_b).iterdir())",
+            marks=pytest.mark.xfail,
+        ),
+        (True, "redirect", "isinstance(files(pkg.sub_b.sub_c), pathlib.Path)"),
+        pytest.param(
+            True,
+            "redirect",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_b.sub_c).iterdir())",
+            marks=pytest.mark.xfail,
+        ),
+        (True, "redirect", "isinstance(files(pkg.sub_b.sub_d), pathlib.Path)"),
+        pytest.param(
+            True,
+            "redirect",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_b.sub_d).iterdir())",
+            marks=pytest.mark.xfail,
+        ),
+        # Editable inplace
+        (True, "inplace", "isinstance(files(pkg), pathlib.Path)"),
+        (True, "inplace", "any(str(x).endswith('.so') for x in files(pkg).iterdir())"),
+        (True, "inplace", "isinstance(files(pkg.sub_a), pathlib.Path)"),
+        (
+            True,
+            "inplace",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_a).iterdir())",
+        ),
+        (True, "inplace", "isinstance(files(pkg.sub_b), pathlib.Path)"),
+        (
+            True,
+            "inplace",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_b).iterdir())",
+        ),
+        (True, "inplace", "isinstance(files(pkg.sub_b.sub_c), pathlib.Path)"),
+        (
+            True,
+            "inplace",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_b.sub_c).iterdir())",
+        ),
+        (True, "inplace", "isinstance(files(pkg.sub_b.sub_d), pathlib.Path)"),
+        (
+            True,
+            "inplace",
+            "any(str(x).endswith('.so') for x in files(pkg.sub_b.sub_d).iterdir())",
+        ),
+    ],
+)
+def test_importlib_resources(
+    monkeypatch, tmp_path, editable, editable_mode, isolated, check
+):
+    _setup_package_for_editable_layout_tests(  # type: ignore[no-untyped-call]
+        monkeypatch, tmp_path, editable, editable_mode, isolated
+    )
+    isolated.execute(
+        textwrap.dedent(
+            f"""
+            from importlib.resources import files
+            from importlib.readers import MultiplexedPath
+            import pkg
+            import pathlib
+            assert {check}
+            """
+        )
+    )
