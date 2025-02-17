@@ -273,8 +273,12 @@ class SettingsReader:
                 new_min_cmake = "3.15"
             self.settings.cmake.version = SpecifierSet(f">={new_min_cmake}")
 
+        default_cmake_minimum = "3.15"
+        if self.settings.cmake.preset:
+            default_cmake_minimum = "3.19"
+
         _handle_minimum_version(
-            self.settings.cmake, self.settings.minimum_version, "3.15"
+            self.settings.cmake, self.settings.minimum_version, default_cmake_minimum
         )
         _handle_minimum_version(self.settings.ninja, self.settings.minimum_version)
 
