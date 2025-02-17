@@ -140,6 +140,8 @@ class GetRequires:
         if self.settings.fail:
             return
 
+        yield from self.settings.build.build_requires
+
         for dynamic_metadata in self.settings.metadata.values():
             if "provider" in dynamic_metadata:
                 config = dynamic_metadata.copy()

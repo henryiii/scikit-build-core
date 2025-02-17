@@ -1,0 +1,13 @@
+[build-system]
+requires = ["scikit-build-core"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "more_build_requires"
+
+[tool.scikit-build.build]
+build-requires = ["foo"]
+
+[[tool.scikit-build.overrides]]
+if.env.LOCAL_FOO = true
+build.build-requires = ["foo @ {root:uri}/foo"]

@@ -281,6 +281,10 @@ build.targets = []
 # Verbose printout when building.
 build.verbose = false
 
+# Additional ``build-system.requires``. Intended to be used in combination with
+# ``overrides``.
+build.build-requires = []
+
 # The components to install. If empty, all default components are installed.
 install.components = []
 

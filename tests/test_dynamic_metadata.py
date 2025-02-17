@@ -7,7 +7,7 @@ import textwrap
 import types
 import zipfile
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 from packaging.version import Version
@@ -21,6 +21,9 @@ from scikit_build_core.metadata import regex
 from scikit_build_core.settings.skbuild_read_settings import SettingsReader
 
 from pathutils import contained
+
+if TYPE_CHECKING:
+    from typing import Literal
 
 
 # these are mock plugins returning known results
@@ -345,3 +348,38 @@ def test_regex_remove(
     )
 
     assert version == ("1.2.3dev1" if dev else "1.2.3")
+
+
+@pytest.mark.usefixtures("package_dynamic_metadata")
+@pytest.mark.parametrize("override", [None, "env", "sdist"])
+def test_build_requires_field(override, monkeypatch) -> None:
+    shutil.copy("build_requires_project.toml", "pyproject.toml")
+
+    if override == "env":
+        monkeypatch.setenv("LOCAL_FOO", "True")
+    else:
+        monkeypatch.delenv("LOCAL_FOO", raising=False)
+
+    with Path("pyproject.toml").open("rb") as ft:
+        pyproject = tomllib.load(ft)
+    state: Literal["sdist", "metadata_wheel"] = (
+        "sdist" if override == "sdist" else "metadata_wheel"
+    )
+    settings_reader = SettingsReader(pyproject, {}, state=state)
+
+    settings_reader.validate_may_exit()
+
+    if override is None:
+        assert set(GetRequires().dynamic_metadata()) == {
+            "foo",
+        }
+    elif override == "env":
+        assert set(GetRequires().dynamic_metadata()) == {
+            # TODO: This should be resolved to actual path
+            "foo @ {root:uri}/foo",
+        }
+    elif override == "sdist":
+        assert set(GetRequires().dynamic_metadata()) == {
+            # TODO: Check if special handling should be done for sdist
+            "foo",
+        }
