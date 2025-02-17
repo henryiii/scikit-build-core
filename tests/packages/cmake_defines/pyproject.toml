@@ -9,3 +9,8 @@ ONE_LEVEL_LIST = [
     "Baz",
 ]
 NESTED_LIST = [ "Apple", "Lemon;Lime", "Banana" ]
+OVERWRITTEN_VAR = "overwritten"
+
+[[tool.scikit-build.overrides]]
+if.env.WITH_PRESET = true
+cmake.preset = "scikit"

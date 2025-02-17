@@ -14,12 +14,14 @@ from packaging.version import Version
 from scikit_build_core.builder.builder import Builder
 from scikit_build_core.cmake import CMake, CMaker
 from scikit_build_core.errors import CMakeNotFoundError
+from scikit_build_core.program_search import best_program, get_cmake_programs
 from scikit_build_core.settings.skbuild_read_settings import SettingsReader
 
 if TYPE_CHECKING:
     from collections.abc import Generator
 
 DIR = Path(__file__).parent.resolve()
+cmake_preset_info = best_program(get_cmake_programs(), version=SpecifierSet(">=3.19"))
 
 
 def single_config(param: None | str) -> bool:
@@ -204,10 +206,26 @@ def test_cmake_paths(
     assert len(fp.calls) == 2
 
 
+@pytest.mark.parametrize(
+    "with_preset",
+    [
+        pytest.param(
+            True,
+            marks=pytest.mark.skipif(
+                cmake_preset_info is None,
+                reason="CMake version does not support presets.",
+            ),
+        ),
+        False,
+    ],
+)
 @pytest.mark.configure
 def test_cmake_defines(
+    monkeypatch,
     tmp_path: Path,
+    with_preset: bool,
 ):
+    monkeypatch.setenv("WITH_PRESET", f"{with_preset}")
     source_dir = DIR / "packages" / "cmake_defines"
     binary_dir = tmp_path / "build"
 
@@ -224,8 +242,14 @@ def test_cmake_defines(
     builder.configure(defines={})
 
     configure_log = Path.read_text(binary_dir / "log.txt")
+
+    # This var is always overwritten
+    overwritten_var = "overwritten"
+    preset_only_var = "defined" if with_preset else ""
     assert configure_log == dedent(
-        """\
+        f"""\
+        PRESET_ONLY_VAR={preset_only_var}
+        OVERWRITTEN_VAR={overwritten_var}
         ONE_LEVEL_LIST.LENGTH = 4
         Foo
         Bar
