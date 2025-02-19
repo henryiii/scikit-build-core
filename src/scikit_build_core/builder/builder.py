@@ -256,6 +256,7 @@ class Builder:
         cmake_defines.update(self.settings.cmake.define)
 
         self.config.configure(
+            preset=self.settings.cmake.preset,
             defines=cmake_defines,
             cmake_args=[*self.get_cmake_args(), *configure_args],
         )

@@ -181,6 +181,14 @@ cmake.source-dir = "."
 # DEPRECATED in 0.10; use build.targets instead.
 cmake.targets = ""
 
+# Configure preset to use. ``cmake.source-dir`` must still be appropriately
+# defined and it must contain a ``CMake(User)Presets.json``. The preset's
+# ``binaryDir`` is ignored and is always overwritten by the ``build-dir``
+# defined by scikit-build-core. ``cmake.define``, generator values are still
+# passed if defined and take precedence over preset's value according to CMake
+# logic.
+cmake.preset = ""
+
 # The versions of Ninja to allow. If Ninja is not present on the system or does
 # not pass this specifier, it will be downloaded via PyPI if possible. An empty
 # string will disable this check.

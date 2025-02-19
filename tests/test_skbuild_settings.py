@@ -764,4 +764,5 @@ def test_skbuild_settings_cmake_define_list():
     assert settings.cmake.define == {
         "NESTED_LIST": r"Apple;Lemon\;Lime;Banana",
         "ONE_LEVEL_LIST": "Foo;Bar;ExceptionallyLargeListEntryThatWouldOverflowTheLine;Baz",
+        "OVERWRITTEN_VAR": "overwritten",
     }

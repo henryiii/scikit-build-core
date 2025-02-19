@@ -90,6 +90,7 @@ def set_environment_for_gen(
 
     If gen is not None, then that will be the target generator.
     """
+    # TODO: How does make_fallback interact when `preset` is set?
     allow_make_fallback = ninja_settings.make_fallback
 
     if generator:
