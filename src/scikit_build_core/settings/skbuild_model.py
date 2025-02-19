@@ -277,6 +277,12 @@ class BuildSettings:
     Verbose printout when building.
     """
 
+    build_requires: List[str] = dataclasses.field(default_factory=list)
+    """
+    Additional ``build-system.requires``. Intended to be used in combination
+    with ``overrides``.
+    """
+
 
 @dataclasses.dataclass
 class InstallSettings:

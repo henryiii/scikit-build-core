@@ -299,6 +299,13 @@
           "type": "boolean",
           "default": false,
           "description": "Verbose printout when building."
+        },
+        "build-requires": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional ``build-system.requires``. Intended to be used in combination with ``overrides``."
         }
       }
     },
@@ -559,6 +566,9 @@
                     "$ref": "#/$defs/inherit"
                   },
                   "targets": {
+                    "$ref": "#/$defs/inherit"
+                  },
+                  "build-requires": {
                     "$ref": "#/$defs/inherit"
                   }
                 }
