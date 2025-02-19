@@ -360,7 +360,8 @@ def test_build_requires_field(override, monkeypatch) -> None:
     else:
         monkeypatch.delenv("LOCAL_FOO", raising=False)
 
-    with Path("pyproject.toml").open("rb") as ft:
+    pyproject_path = Path("pyproject.toml")
+    with pyproject_path.open("rb") as ft:
         pyproject = tomllib.load(ft)
     state: Literal["sdist", "metadata_wheel"] = (
         "sdist" if override == "sdist" else "metadata_wheel"
@@ -374,9 +375,11 @@ def test_build_requires_field(override, monkeypatch) -> None:
             "foo",
         }
     elif override == "env":
+        # evaluate ../foo as uri
+        foo_path = pyproject_path.parent.parent / "foo"
+        foo_path = foo_path.absolute()
         assert set(GetRequires().dynamic_metadata()) == {
-            # TODO: This should be resolved to actual path
-            "foo @ {root:uri}/foo",
+            f"foo @ {foo_path.as_uri()}",
         }
     elif override == "sdist":
         assert set(GetRequires().dynamic_metadata()) == {
