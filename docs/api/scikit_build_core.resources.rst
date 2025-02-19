@@ -3,8 +3,8 @@ scikit\_build\_core.resources package
 
 .. automodule:: scikit_build_core.resources
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Subpackages
 -----------

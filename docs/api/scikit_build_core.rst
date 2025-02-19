@@ -3,8 +3,8 @@ scikit\_build\_core package
 
 .. automodule:: scikit_build_core
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 Subpackages
 -----------
@@ -30,21 +30,21 @@ scikit\_build\_core.cmake module
 
 .. automodule:: scikit_build_core.cmake
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 scikit\_build\_core.errors module
 ---------------------------------
 
 .. automodule:: scikit_build_core.errors
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
 
 scikit\_build\_core.program\_search module
 ------------------------------------------
 
 .. automodule:: scikit_build_core.program_search
    :members:
-   :undoc-members:
    :show-inheritance:
+   :undoc-members:
