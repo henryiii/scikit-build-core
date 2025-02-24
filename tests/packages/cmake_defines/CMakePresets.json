@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "configurePresets": [
+    {
+      "name": "scikit",
+      "cacheVariables": {
+        "PRESET_ONLY_VAR": "defined",
+        "OVERWRITTEN_VAR": "original"
+      },
+      "binaryDir": "/dev/null",
+      "generator": "Ninja"
+    }
+  ]
+}
