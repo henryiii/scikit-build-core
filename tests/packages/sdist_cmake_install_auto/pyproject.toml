@@ -1,0 +1,19 @@
+[build-system]
+requires = ["scikit-build-core"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "sdist_cmake_install_auto"
+version = "0.2.0"
+
+[tool.scikit-build]
+# Automatic from-sdist repackaging: sdist.install-dir vendors the staged wheel
+# trees into the sdist, and a build from the unpacked sdist restages them with
+# no CMake -- no if.from-sdist override or wheel.force-include recipe needed.
+sdist.cmake = true
+sdist.install-dir = ".cmake-install"
+# Declare the lib tree as pure so the sdist-time and from-sdist targetlib agree
+# (purelib -> py3-none-any). A compiled (platlib) tree can't be repackaged this
+# way; its platform tag is unrecoverable without re-running CMake.
+wheel.platlib = false
+wheel.license-files = []

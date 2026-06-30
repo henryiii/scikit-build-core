@@ -278,35 +278,52 @@ all:
 [tool.scikit-build]
 sdist.cmake = true
 # Setting sdist.install-dir upgrades the SDist CMake run to a full
-# configure + build + install, vendoring the install tree into the SDist here.
+# configure + build + install, vendoring the staged wheel trees into the SDist.
 sdist.install-dir = ".cmake-install"
-
-[[tool.scikit-build.overrides]]
-if.from-sdist = true       # only when building from an unpacked SDist
-wheel.cmake = false        # no CMake: a pure py3-none-any wheel
-wheel.force-include.".cmake-install/platlib" = "${SKBUILD_PLATLIB_DIR}"
+# Declare the wheel pure so the SDist-build and from-SDist wheels match
+# (purelib -> py3-none-any).
+wheel.platlib = false
 ```
 
-The vendored tree keeps one subdirectory per wheel tree, so anything CMake
-installs into the `data`, `headers`, `scripts`, or `metadata` trees (via the
-`SKBUILD_*_DIR` cache variables) is preserved too. Map back each tree your
-project installs into — for example, a project using headers and scripts adds:
+That is the whole recipe. When a wheel is built from the unpacked SDist
+(detected by the presence of `PKG-INFO`, the same signal as
+[`if.from-sdist`](#overrides)), scikit-build-core sees the vendored
+`.cmake-install` tree, **disables CMake automatically**, and restages every tree
+the SDist build captured — `platlib`/`purelib`, `data`, `headers`, `scripts`,
+and `metadata` — back into the wheel. Nothing CMake installed via the
+`SKBUILD_*_DIR` cache variables is lost, and there is no per-tree
+`wheel.force-include` recipe to maintain.
+
+Building a wheel directly from the source tree is unchanged: there is no
+`PKG-INFO`, so CMake runs as usual. The `.cmake-install` tree is written into
+the SDist root (it is _not_ added to your source tree).
+
+To opt back out of the automatic behavior for a from-SDist build, set
+`wheel.cmake` explicitly (e.g. an `if.from-sdist` override with
+`wheel.cmake = true` to re-run CMake, or `wheel.cmake = false` together with a
+hand-written `wheel.force-include` recipe). An explicit `wheel.cmake` of either
+value suppresses the automatic restaging.
+
+#### Compiled (non-pure) wheels
+
+Automatic repackaging only applies to pure (`purelib`) wheels. A compiled
+`platlib` tree cannot be restaged this way — its platform tag is computed by the
+CMake build and cannot be recovered when CMake is skipped, so a vendored
+`platlib` tree built against a `purelib` wheel is an error. If your install tree
+is compiled, keep `wheel.cmake` and an explicit `wheel.tags`/`force-include`
+recipe instead:
 
 ```toml
+[[tool.scikit-build.overrides]]
+if.from-sdist = true
+wheel.cmake = false
+wheel.tags = ["py3-none-manylinux_2_17_x86_64"]   # the original build's tag
+wheel.force-include.".cmake-install/platlib" = "${SKBUILD_PLATLIB_DIR}"
 wheel.force-include.".cmake-install/headers" = "${SKBUILD_HEADERS_DIR}"
-wheel.force-include.".cmake-install/scripts" = "${SKBUILD_SCRIPTS_DIR}"
 ```
 
-The lib subdirectory is named `platlib` or `purelib` to match the wheel the
-SDist build produced (use `purelib` if you set `wheel.platlib = false`).
-
-Building a wheel directly from the source tree is unchanged — `from-sdist` is
-false, so the override does not apply and CMake runs as usual. Only the
-SDist→wheel path becomes CMake-free. The `sdist.install-dir` tree is written
-into the SDist root (it is _not_ added to your source tree), and the
-`if.from-sdist` override repackages it into the wheel. If your wheel is normally
-non-pure, set `wheel.platlib = false` so the source-tree build is also pure and
-the two wheels match.
+The vendored lib subdirectory is named `platlib` or `purelib` to match the wheel
+the SDist build produced.
 
 ## Customizing the built wheel
 

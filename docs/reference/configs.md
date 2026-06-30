@@ -731,9 +731,10 @@ print(mk_skbuild_docs())
   When set (and :confval:`sdist.cmake` is true), the SDist build runs a full
   configure + build + install and writes the staged wheel trees here, one
   subdirectory per tree (``platlib``/``purelib``, ``data``, ``headers``,
-  ``scripts``, ``metadata``). Force-include each back into the wheel from the
-  unpacked SDist, e.g.
-  ``wheel.force-include.".cmake-install/platlib" = "${SKBUILD_PLATLIB_DIR}"``.
+  ``scripts``, ``metadata``). A wheel built from the unpacked SDist then
+  restages those trees automatically with no CMake (pure/``purelib`` wheels
+  only); set ``wheel.cmake`` explicitly to opt out. See the docs for the
+  compiled-wheel ``wheel.force-include`` recipe.
 ```
 
 ```{eval-rst}

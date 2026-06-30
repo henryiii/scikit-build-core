@@ -128,6 +128,79 @@ def _force_include_into_wheel(
     return written
 
 
+def _detect_auto_repackage(
+    settings_reader: SettingsReader,
+    *,
+    exit_after_config: bool,
+    cmake_install_dir: Path | None,
+) -> bool:
+    """
+    Decide whether this is a from-sdist build of a vendored ``sdist.install-dir``
+    tree, which can be repackaged into the wheel without re-running CMake.
+
+    When true, ``wheel.cmake`` is forced off so the rest of the build skips
+    configure/build/install and :func:`_restage_vendored_tree` supplies the
+    contents instead. Detection (and the disable) is suppressed when:
+
+    * this *is* the sdist install pass (``cmake_install_dir``) or a configure-only
+      sdist run (``exit_after_config``);
+    * ``sdist.install-dir`` is unset or its directory is absent (a source-tree
+      build has no vendored tree);
+    * ``PKG-INFO`` is absent (the same signal as ``if.from-sdist``);
+    * the user set ``wheel.cmake`` explicitly (the opt-out: an explicit value -
+      even ``false`` with a hand-written ``force-include`` recipe - is honored).
+    """
+    if cmake_install_dir is not None or exit_after_config:
+        return False
+    settings = settings_reader.settings
+    install_dir = settings.sdist.install_dir
+    if not install_dir or not Path(install_dir).is_dir():
+        return False
+    if not Path("PKG-INFO").is_file():
+        return False
+    if settings_reader.sources.has_item("wheel", "cmake", is_dict=False):
+        return False
+    settings.wheel.cmake = False
+    return True
+
+
+def _restage_vendored_tree(
+    vendored: Path,
+    *,
+    wheel_dirs: dict[str, Path],
+    targetlib: str,
+) -> None:
+    """
+    Copy each subtree the ``sdist.install-dir`` pass vendored back into its wheel
+    tree, reproducing the original wheel without CMake.
+
+    The lib subtree was named for the sdist-time targetlib (``platlib`` /
+    ``purelib``); remap it onto the current targetlib. A ``platlib`` subtree built
+    against a ``purelib`` wheel means compiled output whose platform tag cannot be
+    recovered without re-running CMake - refuse, and point at the explicit recipe.
+    """
+    for sub in sorted(vendored.iterdir()):
+        if not sub.is_dir():
+            continue
+        name = sub.name
+        if name in {"platlib", "purelib"}:
+            if name == "platlib" and targetlib != "platlib":
+                msg = (
+                    "sdist.install-dir vendored a 'platlib' tree but this wheel "
+                    "is purelib. Set wheel.platlib = false if the tree is pure, "
+                    "or (if it is compiled) keep wheel.cmake and wheel.tags set "
+                    "and use an explicit wheel.force-include recipe."
+                )
+                raise AssertionError(msg)
+            dest = wheel_dirs[targetlib]
+        elif name in wheel_dirs:
+            dest = wheel_dirs[name]
+        else:
+            logger.warning("Ignoring unknown vendored tree {!r}", name)
+            continue
+        shutil.copytree(sub, dest, dirs_exist_ok=True, symlinks=True)
+
+
 @dataclasses.dataclass
 class WheelImplReturn:
     wheel_filename: str
@@ -196,6 +269,12 @@ def _build_wheel_impl(
             "ninja should not be in build-system.requires - scikit-build-core will inject it as needed"
         )
 
+    auto_repackage = _detect_auto_repackage(
+        settings_reader,
+        exit_after_config=exit_after_config,
+        cmake_install_dir=cmake_install_dir,
+    )
+
     try:
         return _build_wheel_impl_impl(
             wheel_directory,
@@ -203,6 +282,7 @@ def _build_wheel_impl(
             exit_after_config=exit_after_config,
             editable=editable,
             cmake_install_dir=cmake_install_dir,
+            auto_repackage=auto_repackage,
             state=state,
             settings=settings_reader.settings,
             pyproject=pyproject,
@@ -226,6 +306,12 @@ def _build_wheel_impl(
 
         settings_reader.validate_may_exit()
 
+        auto_repackage = _detect_auto_repackage(
+            settings_reader,
+            exit_after_config=exit_after_config,
+            cmake_install_dir=cmake_install_dir,
+        )
+
         try:
             return _build_wheel_impl_impl(
                 wheel_directory,
@@ -233,6 +319,7 @@ def _build_wheel_impl(
                 exit_after_config=exit_after_config,
                 editable=editable,
                 cmake_install_dir=cmake_install_dir,
+                auto_repackage=auto_repackage,
                 state=state,
                 settings=settings_reader.settings,
                 pyproject=pyproject,
@@ -249,6 +336,7 @@ def _build_wheel_impl_impl(
     exit_after_config: bool = False,
     editable: bool,
     cmake_install_dir: Path | None = None,
+    auto_repackage: bool = False,
     state: Literal["sdist", "wheel", "editable", "metadata_wheel", "metadata_editable"],
     settings: ScikitBuildSettings,
     pyproject: dict[str, Any],
@@ -313,6 +401,17 @@ def _build_wheel_impl_impl(
         install_dir = get_install_dir(
             settings, wheel_dirs=wheel_dirs, targetlib=targetlib
         )
+
+        # Automatic from-sdist repackaging: restage the trees vendored by
+        # sdist.install-dir instead of running CMake. wheel.cmake was already
+        # forced off in _detect_auto_repackage, so the configure/build/install
+        # block below is skipped and these contents stand in for it.
+        if auto_repackage:
+            _restage_vendored_tree(
+                Path(settings.sdist.install_dir),
+                wheel_dirs=wheel_dirs,
+                targetlib=targetlib,
+            )
 
         # The metadata-only and full-wheel paths build identical WheelWriters
         # except for the output folder; share a single constructor.

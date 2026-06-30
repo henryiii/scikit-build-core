@@ -1,0 +1,4 @@
+set(EXAMPLE_VERSION "@PROJECT_VERSION@")
+# Captures SKBUILD_STATE: the install-and-vendor pass runs as a "wheel" build,
+# since its output becomes the wheel contents.
+set(EXAMPLE_STATE "@SKBUILD_STATE@")
