@@ -117,32 +117,43 @@ def test_get_requires_for_build_sdist_cmake(fp: FakeProcess):
 
 
 @pytest.mark.parametrize(
-    ("hook", "config"),
+    ("hook", "config", "expected"),
     [
         (
             get_requires_for_build_sdist,
             {"experimental": "true", "variant": "cpu :: abi :: cp313"},
+            False,
         ),
         (
             get_requires_for_build_wheel,
             {"experimental": "true", "variant": "cpu :: abi :: cp313"},
+            True,
         ),
         (
             get_requires_for_build_editable,
             {"experimental": "true", "variant-name": "cpu :: abi :: cp313"},
+            True,
         ),
     ],
 )
 def test_get_requires_for_build_with_variant(
     fp: FakeProcess,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
     hook,
     config: dict[str, str],
+    expected: bool,
 ):
+    tmp_path.joinpath("pyproject.toml").write_text(
+        '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n',
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
     fp.register(
         [Path("cmake/path"), "-E", "capabilities"],
         stdout='{"version":{"string":"3.14.0"}}',
     )
-    assert VARIANTLIB_BUILD_REQUIREMENT in hook(config)
+    assert (VARIANTLIB_BUILD_REQUIREMENT in hook(config)) is expected
 
 
 def test_get_requires_for_build_wheel(fp: FakeProcess):
