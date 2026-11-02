@@ -126,7 +126,6 @@ If you must build with isolation (for example, wheel builds in CI), get the
 headers from a stable location instead of the build environment. Move pybind11
 from `build-system.requires` to a fixed location, like a git submodule.
 
-
 ## Debug builds on Windows
 
 A `cmake.build-type=Debug` extension links against the debug CPython
