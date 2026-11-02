@@ -28,6 +28,7 @@ SOURCES = {
     "cython": "_core.pyx",
     "swig": "_core.c",
     "fortran": "_core.f",
+    "ctypes": "_core.c",
 }
 
 EXTRA_REQUIRES = {
@@ -39,6 +40,7 @@ EXTRA_REQUIRES = {
     "cython": ["cython", "cython-cmake"],
     "swig": ["swig"],
     "fortran": ["numpy", "f2py-cmake"],
+    "ctypes": [],
 }
 
 
@@ -49,9 +51,11 @@ def test_init_generates_files(backend: str, tmp_path: Path) -> None:
 
     pkg = project / "src" / "my_pkg"
     assert (project / "CMakeLists.txt").is_file()
-    assert (
-        pkg / "__init__.py"
-    ).read_text() == 'from ._core import square\n\n__all__ = ["square"]\n'
+    init = (pkg / "__init__.py").read_text()
+    if backend == "ctypes":
+        assert "ctypes.CDLL" in init
+    else:
+        assert init == 'from ._core import square\n\n__all__ = ["square"]\n'
     assert (pkg / SOURCES[backend]).is_file()
     if backend == "swig":
         assert (pkg / "_core.i").is_file()
@@ -94,6 +98,27 @@ def test_init_abi3t_wheel_suffix(
     # The template must apply scikit-build-core's selected suffix instead.
     with zipfile.ZipFile(wheel) as archive:
         assert f"my_pkg/_core.{abi}.{suffix}" in archive.namelist()
+
+    virtualenv.install(str(wheel))
+    assert virtualenv.execute("import my_pkg; print(my_pkg.square(2))") == "4.0"
+
+
+@pytest.mark.compile
+@pytest.mark.configure
+def test_init_ctypes_wheel(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, virtualenv: VEnv
+) -> None:
+    project = tmp_path / "proj"
+    generate_project(project, "ctypes", "my-pkg")
+    monkeypatch.chdir(project)
+    dist = tmp_path / "dist"
+    dist.mkdir()
+
+    wheel = dist / build_wheel(str(dist))
+    assert wheel.name.startswith("my_pkg-0.0.1-py3-none-")
+    suffix = "dll" if sys.platform.startswith(("win", "cygwin")) else "so"
+    with zipfile.ZipFile(wheel) as archive:
+        assert f"my_pkg/_core.{suffix}" in archive.namelist()
 
     virtualenv.install(str(wheel))
     assert virtualenv.execute("import my_pkg; print(my_pkg.square(2))") == "4.0"

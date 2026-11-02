@@ -7,6 +7,55 @@ hard-coding a path. This has the nice property that a single wheel works on
 every Python version, since the library does not touch the Python ABI. The
 tradeoff is that you have to find and load the library yourself.
 
+## Quick start
+
+You do not need a binding tool such as pybind11. The build backend is still
+`scikit_build_core.build`. To make a working starter project, run:
+
+```bash
+scikit-build init --backend ctypes myproject
+```
+
+This makes these files:
+
+```
+example
+├── pyproject.toml
+├── CMakeLists.txt
+└── src
+    └── example
+        ├── __init__.py
+        └── _core.c
+```
+
+The `pyproject.toml` sets `wheel.py-api = "py3"`, so the wheel has a
+`py3-none-<platform>` tag and works on every Python version:
+
+```{literalinclude} ../examples/generated/ctypes/pyproject.toml
+:language: toml
+```
+
+The `CMakeLists.txt` builds a plain library. It does not use
+`find_package(Python)`:
+
+```{literalinclude} ../examples/generated/ctypes/CMakeLists.txt
+:language: cmake
+```
+
+The C source exports a function:
+
+```{literalinclude} ../examples/generated/ctypes/src/example/_core.c
+:language: c
+```
+
+The `__init__.py` loads the library and declares the function signature:
+
+```{literalinclude} ../examples/generated/ctypes/src/example/__init__.py
+:language: python
+```
+
+The sections below give more information about each step.
+
 ## Install the library next to your Python code
 
 Point the install destination at your package directory so the library lands in

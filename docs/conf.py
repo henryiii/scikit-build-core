@@ -57,6 +57,7 @@ EXAMPLE_BACKENDS = [
     "abi3",
     "abi3t",
     "fortran",
+    "ctypes",
 ]
 GENERATED_EXAMPLES = ROOT / "docs/examples/generated"
 if scikit_build_core is not None:

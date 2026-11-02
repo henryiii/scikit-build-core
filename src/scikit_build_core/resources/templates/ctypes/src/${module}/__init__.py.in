@@ -1,0 +1,15 @@
+import ctypes
+import sys
+from importlib.resources import files
+
+_suffix = ".dll" if sys.platform in {"win32", "cygwin"} else ".so"
+_lib = ctypes.CDLL(str(files(__name__) / f"_core{_suffix}"))
+_lib.square.argtypes = [ctypes.c_float]
+_lib.square.restype = ctypes.c_float
+
+
+def square(x: float) -> float:
+    return _lib.square(x)
+
+
+__all__ = ["square"]

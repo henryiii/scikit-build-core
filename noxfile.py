@@ -214,7 +214,7 @@ def build(session: nox.Session) -> None:
 
 # Getting-started examples are generated from the init templates (the single
 # source of truth); downstream examples are committed projects under docs.
-GETTING_STARTED = ["c", "abi3", "pybind11", "nanobind", "swig", "cython"]
+GETTING_STARTED = ["c", "abi3", "ctypes", "pybind11", "nanobind", "swig", "cython"]
 if not sys.platform.startswith("win") and shutil.which("gfortran"):
     GETTING_STARTED.append("fortran")
 EXAMPLES = [f"getting_started:{n}" for n in GETTING_STARTED]

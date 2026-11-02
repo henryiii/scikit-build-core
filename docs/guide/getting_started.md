@@ -23,7 +23,8 @@ There are several mechanisms to quickly get started with a package:
 - Scikit-build-core ships an `init` command:
   `scikit-build init --backend pybind11 myproject` scaffolds the exact project
   this page builds (run without `--backend` to pick one interactively). The rest
-  of this page walks through what it generates.
+  of this page walks through what it generates. For a plain library loaded with
+  `ctypes`, use `--backend ctypes` and see [](./ctypes.md).
 - [uv][] has built-in support for scikit-build-core. Just make a directory for
   your package and run: `uv init --lib --build-backend=scikit`.
 - [scientific-python/cookie][] has a cookiecutter/copier template for making a

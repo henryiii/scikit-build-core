@@ -57,6 +57,7 @@ _BACKENDS = {
             'wheel.py-api = "cp315.cp315t"\n'
         )
     ),
+    "ctypes": _Backend(tool='\n[tool.scikit-build]\nwheel.py-api = "py3"\n'),
 }
 BACKENDS = tuple(_BACKENDS)
 
@@ -100,7 +101,8 @@ def _generate(
         "tool": data.tool,
     }
 
-    written: list[Path] = []
+    # A backend file replaces a ``common`` file with the same path.
+    written: set[Path] = set()
     for root in (resources / "templates" / "common", resources / "templates" / backend):
         # Walk the tree; path components are templated too (e.g. ``${module}``).
         stack = [(root, Path())]
@@ -119,7 +121,7 @@ def _generate(
                 dest = directory / rel / name
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 dest.write_text(text.rstrip() + "\n", encoding="utf-8")
-                written.append(dest)
+                written.add(dest)
     return sorted(written)
 
 
