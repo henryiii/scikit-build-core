@@ -1,5 +1,39 @@
 # Changelog
 
+## Version 1.1.2
+
+This patch release adds a `ctypes` backend to `scikit-build init`. It builds a
+plain C library without Python headers and makes a `py3` wheel.
+`editable.rebuild-dir` now accepts a `{build_dir}` template key, so the install
+tree can follow the build tree. Editable redirect installs no longer redirect
+imports that run inside their own CMake build, such as nanobind stub generation.
+
+Features:
+
+- Init: `scikit-build init --backend ctypes` in #1620
+- Editable: `{build_dir}` template key for `editable.rebuild-dir` (#1606) in
+  #1609
+
+Fixes:
+
+- Editable: the redirect finder yields to normal imports inside its own CMake
+  build, so build steps that import the package see the new build (#1612) in
+  #1613
+
+Documentation:
+
+- Explain ccache misses with build isolation (#1605) in #1621
+
+CI and testing:
+
+- Always replace the cached scikit-build-core wheel on rebuild in #1614
+- Drop the Windows PyPy 3.9 job in #1615
+- Use the prek action with `GITHUB_TOKEN` for zizmor online audits in #1602
+
+Internal:
+
+- Update flake8-lazy to 0.10.1 in #1603
+
 ## Version 1.1.1
 
 This patch release improves performance and fixes two minor regressions from

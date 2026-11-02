@@ -10,7 +10,7 @@ The following configure keys are formatted as Python `str.format` templates:
 `editable.rebuild-dir` is formattable.
 ```
 
-```{versionadded} 1.2
+```{versionadded} 1.1.2
 `{build_dir}` in `editable.rebuild-dir`.
 ```
 
