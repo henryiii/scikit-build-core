@@ -105,6 +105,28 @@ VSCode C/C++ extension, set
 See [editable installs](../configuration/editable.md) for the related
 `--no-build-isolation` recommendations.
 
+(ccache)=
+
+## Compiler caches (ccache / sccache)
+
+A compiler cache compares the full compile command. With build isolation, the
+include path of a build dependency such as pybind11 is in a new temporary
+environment for each build (for example `/tmp/pip-build-env-xxxx/...` or
+`~/.cache/uv/builds-v0/.tmpxxxx/...`). Thus the command changes each time and
+the cache never hits, even with a fixed {confval}`build-dir`. `CCACHE_BASEDIR`
+does not help, because the random part stays in the path.
+
+The simplest fix is the persistent-tree install above: disable isolation and
+preinstall the build dependencies. Build isolation was not designed to work well
+with editable installs. A full fix would require tools like uv and pip to keep a
+consistent path for repeated isolated environments, which is outside the scope
+of scikit-build-core.
+
+If you must build with isolation (for example, wheel builds in CI), get the
+headers from a stable location instead of the build environment. Move pybind11
+from `build-system.requires` to a fixed location, like a git submodule.
+
+
 ## Debug builds on Windows
 
 A `cmake.build-type=Debug` extension links against the debug CPython
