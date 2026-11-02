@@ -144,6 +144,66 @@ def test_install_dir(isolated, isolate):
 @pytest.mark.parametrize("package", ["simplest_c"], indirect=True)
 @pytest.mark.parametrize("isolate", {False}, indirect=True)
 @pytest.mark.usefixtures("package")
+def test_rebuild_import_during_build(isolated, isolate):
+    # A build step that imports the package (nanobind's stubgen, for example)
+    # must resolve it from the build tree, not the install tree the redirect
+    # points at: on reinstall that tree is wiped before the build, and on an
+    # import-triggered rebuild it still holds the previous build (#1612).
+    with Path("CMakeLists.txt").open("a", encoding="utf-8") as f:
+        f.write(
+            textwrap.dedent(
+                """
+                set_target_properties(_module PROPERTIES LIBRARY_OUTPUT_DIRECTORY
+                                      "${CMAKE_BINARY_DIR}/pylib/simplest$<0:>")
+                file(WRITE "${CMAKE_BINARY_DIR}/pylib/simplest/__init__.py" "")
+                add_custom_target(
+                  import_check ALL
+                  COMMAND ${CMAKE_COMMAND} -E env "PYTHONPATH=${CMAKE_BINARY_DIR}/pylib"
+                          ${Python_EXECUTABLE} -c
+                          "import simplest._module as m; open('${CMAKE_BINARY_DIR}/imported.txt', 'w').write(m.__file__)"
+                  DEPENDS _module
+                  VERBATIM)
+                """
+            )
+        )
+    settings_overrides = {
+        "build-dir": "build/{wheel_tag}",
+        "editable.rebuild": "true",
+    }
+    install_args = [
+        "-v",
+        *[f"--config-settings={k}={v}" for k, v in settings_overrides.items()],
+        *isolate.flags,
+        "-e",
+        ".",
+    ]
+
+    def imported_from() -> Path:
+        imported = next(Path("build").glob("*/imported.txt"))
+        resolved = Path(imported.read_text(encoding="utf-8")).resolve()
+        imported.unlink()
+        return resolved
+
+    isolated.install(*install_args, installer="pip")
+    build_dir = next(Path("build").glob("*")).resolve()
+    assert imported_from().parent == build_dir / "pylib" / "simplest"
+
+    # The redirect from the first install is active in the build's Python
+    # processes now.
+    isolated.install(*install_args, installer="pip")
+    assert imported_from().parent == build_dir / "pylib" / "simplest"
+
+    out = isolated.execute("import simplest")
+    assert "Running cmake" in out
+    assert imported_from().parent == build_dir / "pylib" / "simplest"
+
+
+@pytest.mark.compile
+@pytest.mark.configure
+@pytest.mark.integration
+@pytest.mark.parametrize("package", ["simplest_c"], indirect=True)
+@pytest.mark.parametrize("isolate", {False}, indirect=True)
+@pytest.mark.usefixtures("package")
 @pytest.mark.parametrize("rebuild", [None, "false"])
 def test_editable_rebuild_dir(isolated, isolate, rebuild):
     # editable.rebuild-dir installs into a user-chosen tree (with the same

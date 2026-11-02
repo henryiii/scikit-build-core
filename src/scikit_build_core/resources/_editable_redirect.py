@@ -496,6 +496,13 @@ class ScikitBuildRedirectingFinder:
         path: object = None,
         target: object = None,
     ) -> importlib.machinery.ModuleSpec | None:
+        # Inside this install's own CMake build (the rebuild and the backend
+        # both list the build dir in MARKER), a build step that imports the
+        # package (e.g. nanobind's stubgen) must see the build tree on sys.path,
+        # not the install tree the build is about to replace (#1612).
+        if self.path and self.path in os.environ.get(MARKER, "").split(os.pathsep):
+            return None
+
         # If no known submodule_search_locations is found, it means it is a root
         # module.
         if fullname in self.submodule_search_locations:

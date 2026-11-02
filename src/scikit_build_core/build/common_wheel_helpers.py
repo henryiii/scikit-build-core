@@ -302,6 +302,19 @@ def configure_wheel(
     )
     builder = Builder(settings=settings, config=config)
 
+    if settings.build_dir:
+        # An editable redirect from a previous install of this project is active
+        # in every Python the build starts. Listing the build dir in the skip
+        # marker makes that redirect yield to normal import resolution (#1612).
+        from ..resources._editable_redirect import MARKER
+
+        skip = config.env.get(MARKER, "").split(os.pathsep)
+        resolved_build_dir = os.fspath(build_dir.resolve())
+        if resolved_build_dir not in skip:
+            config.env[MARKER] = os.pathsep.join(
+                [*filter(None, skip), resolved_build_dir]
+            )
+
     # Setting the install prefix because some libs hardcode CMAKE_INSTALL_PREFIX
     # Otherwise `cmake --install --prefix` would work by itself
     defines = {"CMAKE_INSTALL_PREFIX": install_dir}

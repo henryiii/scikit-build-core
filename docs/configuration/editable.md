@@ -35,6 +35,13 @@ extra reconfigure, including projects that install to an absolute
 `${SKBUILD_PLATLIB_DIR}/...` destination. Deleting the build directory breaks
 the install, but a rebuildable editable already depends on it.
 
+A build step that imports the package itself (nanobind's `nanobind_add_stub`,
+for example) resolves it from the build tree, not through the redirect. Both the
+backend and the import-triggered rebuild list the build directory in the
+`SKBUILD_EDITABLE_SKIP` environment variable, and the redirecting finder steps
+aside in any process that carries it. Put the built module's directory on
+`PYTHONPATH` for that step.
+
 `editable.rebuild-dir` selects this install tree directly, and turns on
 rebuild-on-import unless `editable.rebuild` is explicitly `false`. With
 `editable.rebuild = false`, the editable wheel still holds only the redirect,

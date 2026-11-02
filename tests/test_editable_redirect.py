@@ -335,6 +335,42 @@ def test_rebuild_success_runs_build_and_install(
     assert calls[1][:2] == ["cmake", "--install"]
 
 
+def test_find_spec_yields_inside_own_build(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+):
+    # When the build dir is listed in the skip marker, this process is a step
+    # of the install's own CMake build; normal import resolution must win so
+    # the build tree is imported, not the install tree (#1612).
+    build_dir = tmp_path / "build"
+    pkg = tmp_path / "site" / "pkg"
+    pkg.mkdir(parents=True)
+    pkg.joinpath("__init__.py").write_text("")
+    finder = ScikitBuildRedirectingFinder(
+        known_source_files={},
+        known_wheel_files={"pkg": "pkg/__init__.py"},
+        known_directories={"pkg": ["pkg"]},
+        known_packages=["pkg"],
+        path=str(build_dir),
+        rebuild=False,
+        verbose=False,
+        build_options=[],
+        install_options=[],
+        dir=str(tmp_path / "site"),
+        install_dir="",
+    )
+    monkeypatch.delenv(_editable_redirect.MARKER, raising=False)
+    assert finder.find_spec("pkg") is not None
+
+    monkeypatch.setenv(_editable_redirect.MARKER, str(tmp_path / "other"))
+    assert finder.find_spec("pkg") is not None
+
+    monkeypatch.setenv(
+        _editable_redirect.MARKER,
+        os.pathsep.join([str(tmp_path / "other"), str(build_dir)]),
+    )
+    assert finder.find_spec("pkg") is None
+
+
 def test_rebuild_runs_once_per_process(tmp_path: Path):
     """Regression (#1367): rebuild fires at most once per finder, not per import.
 
