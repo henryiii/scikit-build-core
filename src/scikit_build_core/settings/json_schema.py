@@ -13,13 +13,13 @@ __lazy_modules__ = {
 
 import dataclasses
 from pathlib import Path
-from typing import Annotated, Any, Literal, Union, get_args, get_origin
+from typing import Annotated, Any, Literal, get_args, get_origin
 
 from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
 from .._compat.builtins import ExceptionGroup, add_note
-from ..utils.typing import NoneType
+from ..utils.typing import NoneType, is_union_type
 from .documentation import pull_docs
 
 __all__ = ["FailedConversionError", "convert_type", "to_json_schema"]
@@ -173,7 +173,7 @@ def convert_type(t: Any, *, normalize_keys: bool) -> dict[str, Any]:
                 ".+": convert_type(args[1], normalize_keys=normalize_keys)
             },
         }
-    if origin is Union:
+    if is_union_type(origin):
         # Ignore optional
         if len(args) == 2 and any(a is NoneType for a in args):
             return convert_type(

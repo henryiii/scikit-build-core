@@ -28,10 +28,7 @@ if sys.version_info < (3, 11):
 else:
     import tomllib
 
-if sys.version_info < (3, 10):
-    from typing_extensions import TypeGuard
-else:
-    from typing import TypeGuard
+from typing import TypeGuard
 
 DIR = Path(__file__).parent.resolve()
 BASE = DIR.parent
@@ -344,8 +341,8 @@ def package_simple_pyproject_ext(
     package = PackageInfo(
         "simple_pyproject_ext",
         tmp_path_factory.mktemp("pkg"),
-        "35c72a9d74d51311115745580d7a32b28f89d56a0b056f58c6df2ad80163ebff",
-        "e2bb8e75736e949a0a280c383a36ef06d2e78c55ee546dc405645bb50918b336",
+        "5265ac433b68b351c3258f16dbe1f8d41efb217f26ee72c0c2a29dd2ac747cb2",
+        "fcbd2fdfe47ef226b54a94851b0c56b60747f4fcc83097a25d728d33fc6b3c6c",
     )
     process_package(package, monkeypatch)
     return package

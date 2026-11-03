@@ -137,7 +137,7 @@ in your `pyproject.toml`:
 
 ```toml
 [tool.scikit-build]
-wheel.py-api = "cp39"
+wheel.py-api = "cp310"
 ```
 
 The possible values and the resulting wheel tags are covered in

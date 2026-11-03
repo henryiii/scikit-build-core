@@ -7,5 +7,5 @@ name = "abi3-example"
 version = "0.0.1"
 
 [tool.scikit-build]
-wheel.py-api = "cp39"
+wheel.py-api = "cp310"
 messages.after-success = "This is a message after success"

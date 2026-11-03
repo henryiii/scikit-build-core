@@ -34,7 +34,7 @@ def __dir__() -> list[str]:
 
 
 class _PyTag:
-    """Helper for interrogating a single Python ABI tag like 'cp39' or 'cp315t'."""
+    """Helper for interrogating a single Python ABI tag like 'cp310' or 'cp315t'."""
 
     def __init__(self, tag: str) -> None:
         self._tag = tag
@@ -119,13 +119,14 @@ class WheelTag:
                 pairs = zip(
                     ["universal2", "universal2", "x86_64", "arm64"],
                     [False, True, False, True],
+                    strict=True,
                 )
             elif not archs:
                 # It's okay to set arm to False, since this would be a native build,
                 # and that will already be 11+ for ARM anyway.
-                pairs = zip([None], [False])
+                pairs = zip([None], [False], strict=True)
             else:
-                pairs = zip(archs, [a == "arm64" for a in archs])
+                pairs = zip(archs, [a == "arm64" for a in archs], strict=True)
             plats = [
                 next(
                     packaging.tags.mac_platforms(
@@ -164,7 +165,7 @@ class WheelTag:
                 pyvers = pyvers_new
                 abis = ["none"]
             else:
-                msg = f"Unexpected py-api, must be abi3 (e.g. cp39), abi3t (e.g. cp315t), or Pythonless (e.g. py2.py3), not {py_api}"
+                msg = f"Unexpected py-api, must be abi3 (e.g. cp310), abi3t (e.g. cp315t), or Pythonless (e.g. py2.py3), not {py_api}"
                 raise AssertionError(msg)
 
         return cls(pyvers=pyvers, abis=abis, archs=plats, build_tag=build_tag)
@@ -273,7 +274,7 @@ def populate_parser(parser: argparse.ArgumentParser, /) -> None:
     parser.add_argument(
         "--abi",
         default="",
-        help="Specify py-api, like 'cp39', 'cp315t', or 'py3'",
+        help="Specify py-api, like 'cp310', 'cp315t', or 'py3'",
     )
     parser.add_argument(
         "--purelib",

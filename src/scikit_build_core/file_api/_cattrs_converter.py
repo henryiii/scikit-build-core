@@ -3,6 +3,7 @@
 __lazy_modules__ = {
     "cattrs",
     "cattrs.preconf.json",
+    "collections.abc",
     "json",
     f"{__spec__.parent}.model.cache",
     f"{__spec__.parent}.model.cmakefiles",
@@ -14,8 +15,9 @@ __lazy_modules__ = {
 
 import builtins
 import json
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, TypeVar, Union  # noqa: TID251
+from typing import Any, TypeVar
 
 import cattrs
 import cattrs.preconf.json
@@ -57,7 +59,7 @@ def make_converter(base_dir: Path) -> cattrs.preconf.json.JsonConverter:
     )
     converter.register_structure_hook(InstallPath, ip_hook)
     converter.register_structure_hook(
-        Union[Path, InstallPath],
+        Path | InstallPath,
         lambda v, _: (
             Path(v) if isinstance(v, str) else converter.structure(v, InstallPath)
         ),

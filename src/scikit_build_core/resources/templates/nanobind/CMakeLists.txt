@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15...4.4)
 project(${SKBUILD_PROJECT_NAME} LANGUAGES CXX)
 
-find_package(Python 3.9 REQUIRED COMPONENTS Interpreter Development.Module)
+find_package(Python 3.10 REQUIRED COMPONENTS Interpreter Development.Module)
 
 find_package(nanobind CONFIG REQUIRED)
 

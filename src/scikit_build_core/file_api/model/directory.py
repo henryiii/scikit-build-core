@@ -1,8 +1,7 @@
-__lazy_modules__ = {"pathlib", "typing", f"{__spec__.parent}.common"}
+__lazy_modules__ = {"pathlib", f"{__spec__.parent}.common"}
 
 import dataclasses
 from pathlib import Path
-from typing import Optional, Union
 
 from .common import APIVersion, Paths
 
@@ -36,34 +35,34 @@ class InstallPath:
 class InstallRule:
     component: str
     type: str
-    destination: Optional[Path] = None
-    paths: list[Union[Path, InstallPath]] = dataclasses.field(default_factory=list)
+    destination: Path | None = None
+    paths: list[Path | InstallPath] = dataclasses.field(default_factory=list)
     isExcludeFromAll: bool = False
     isForAllComponents: bool = False
     isOptional: bool = False
-    targetId: Optional[str] = None
-    targetIndex: Optional[int] = None
+    targetId: str | None = None
+    targetIndex: int | None = None
     targetIsImportLibrary: bool = False
-    targetInstallNamelink: Optional[str] = None
-    exportName: Optional[str] = None
+    targetInstallNamelink: str | None = None
+    exportName: str | None = None
     exportTargets: list[Target] = dataclasses.field(default_factory=list)
-    runtimeDependencySetName: Optional[str] = None
-    runtimeDependencySetType: Optional[str] = None
-    fileSetName: Optional[str] = None
-    fileSetType: Optional[str] = None
+    runtimeDependencySetName: str | None = None
+    runtimeDependencySetType: str | None = None
+    fileSetName: str | None = None
+    fileSetType: str | None = None
     fileSetDirectories: list[Path] = dataclasses.field(default_factory=list)
-    fileSetTarget: Optional[Target] = None
-    cxxModuleBmiTarget: Optional[Target] = None
-    scriptFile: Optional[Path] = None
-    backtrace: Optional[int] = None
+    fileSetTarget: Target | None = None
+    cxxModuleBmiTarget: Target | None = None
+    scriptFile: Path | None = None
+    backtrace: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class Node:
     file: int
-    line: Optional[int] = None
-    command: Optional[int] = None
-    parent: Optional[int] = None
+    line: int | None = None
+    command: int | None = None
+    parent: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -78,4 +77,4 @@ class Directory:
     paths: Paths
     installers: list[InstallRule]
     backtraceGraph: BacktraceGraph
-    codemodelVersion: Optional[APIVersion] = None
+    codemodelVersion: APIVersion | None = None

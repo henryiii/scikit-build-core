@@ -57,8 +57,8 @@ features over classic Scikit-build:
 - Limited API / Stable ABI and pythonless tags supported via config option
 - No slow generator search, ninja/make or MSVC used by default, respects
   `CMAKE_GENERATOR`
-- SDists are reproducible by default (UNIX, Python 3.9+, uncompressed comparison
-  recommended), and wheels can be made reproducible too (opt-in)
+- SDists are reproducible by default (UNIX, Python 3.10+, uncompressed
+  comparison recommended), and wheels can be made reproducible too (opt-in)
 - Support for caching between builds (opt-in by setting `build-dir`)
 - Support for writing out to extra wheel folders (scripts, headers, data)
 - Support for selecting install components and build targets
@@ -75,7 +75,8 @@ features over classic Scikit-build:
 Current requirements:
 
 - The minimum supported CMake is 3.15
-- The minimum supported Python is 3.9 (3.8+ for 1.0.x and older)
+- The minimum supported Python is 3.10 (3.9+ for 1.1.x, 3.8+ for 1.0.x and
+  older)
 
 The recommended interface is the native pyproject builder. Other backends are
 also available:

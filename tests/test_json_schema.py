@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any
 
 import pytest
 from packaging.version import Version
@@ -12,13 +12,13 @@ def test_convert_str():
 
 
 def test_convert_str_or_bool():
-    assert convert_type(Union[str, bool], normalize_keys=False) == {
+    assert convert_type(str | bool, normalize_keys=False) == {
         "oneOf": [{"type": "string"}, {"type": "boolean"}]
     }
 
 
 def test_convert_optional_str():
-    assert convert_type(Optional[str], normalize_keys=False) == {"type": "string"}
+    assert convert_type(str | None, normalize_keys=False) == {"type": "string"}
 
 
 def test_convert_path():
@@ -34,7 +34,7 @@ def test_convert_list():
         "type": "array",
         "items": {"type": "string"},
     }
-    assert convert_type(list[Union[str, bool]], normalize_keys=False) == {
+    assert convert_type(list[str | bool], normalize_keys=False) == {
         "type": "array",
         "items": {"oneOf": [{"type": "string"}, {"type": "boolean"}]},
     }

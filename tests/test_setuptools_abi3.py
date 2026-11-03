@@ -64,7 +64,7 @@ def test_abi3_wheel(tmp_path, monkeypatch, virtualenv):
     (wheel,) = dist.glob("abi3_example-0.0.1-*.whl")
     wheel = wheel.resolve()  # Windows mingw64 and UCRT now requires this
     assert wheel == dist / out
-    assert "-cp39-abi3-" in out
+    assert "-cp310-abi3-" in out
 
     assert virtualenv.execute("print('hello')") == "hello"
 

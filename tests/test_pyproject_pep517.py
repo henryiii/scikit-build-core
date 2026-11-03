@@ -49,7 +49,7 @@ def test_pep517_sdist(tmp_path: Path):
             Metadata-Version: 2.2
             Name: CMake.Example
             Version: 0.0.1
-            Requires-Python: >=3.9
+            Requires-Python: >=3.10
             Provides-Extra: test
             Requires-Dist: pytest>=6.0; extra == "test"
             """
@@ -236,7 +236,7 @@ def test_pep517_wheel(virtualenv, tmp_path: Path):
     assert "Metadata-Version: 2.2" in metadata
     assert "Name: CMake.Example" in metadata
     assert "Version: 0.0.1" in metadata
-    assert "Requires-Python: >=3.9" in metadata
+    assert "Requires-Python: >=3.10" in metadata
     assert "Provides-Extra: test" in metadata
 
     virtualenv.install(wheel)
@@ -291,7 +291,7 @@ def test_pep517_wheel_source_dir(virtualenv, tmp_path: Path):
     assert "Metadata-Version: 2.2" in metadata
     assert "Name: CMake.Example" in metadata
     assert "Version: 0.0.1" in metadata
-    assert "Requires-Python: >=3.9" in metadata
+    assert "Requires-Python: >=3.10" in metadata
     assert "Provides-Extra: test" in metadata
 
     assert "Build: 1foo" in wheel_metadata
@@ -345,7 +345,7 @@ def test_prepare_metadata_for_build_wheel(tmp_path):
         "Metadata-Version": "2.2",
         "Name": "CMake.Example",
         "Version": "0.0.1",
-        "Requires-Python": ">=3.9",
+        "Requires-Python": ">=3.10",
         "Provides-Extra": "test",
         "Requires-Dist": 'pytest>=6.0; extra == "test"',
     }
@@ -367,7 +367,7 @@ def test_prepare_metadata_for_build_wheel_by_hand(tmp_path):
         "Metadata-Version": "2.2",
         "Name": "CMake.Example",
         "Version": "0.0.1",
-        "Requires-Python": ">=3.9",
+        "Requires-Python": ">=3.10",
         "Provides-Extra": "test",
         "Requires-Dist": 'pytest>=6.0; extra == "test"',
     }

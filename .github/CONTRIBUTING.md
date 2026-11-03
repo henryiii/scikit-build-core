@@ -37,7 +37,7 @@ specific jobs:
 
 ```console
 $ nox -s lint  # Lint only
-$ nox -s tests-3.9  # Python 3.9 tests only
+$ nox -s tests-3.10  # Python 3.10 tests only
 $ nox -s docs -- serve  # Build and serve the docs
 $ nox -s build  # Make an SDist and wheel
 ```
@@ -241,7 +241,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "cmake_example"
 version = "0.0.1"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.optional-dependencies]
 test = ["pytest>=6.0"]
@@ -275,7 +275,7 @@ setup(
     cmake_source_dir=".",
     zip_safe=False,
     extras_require={"test": ["pytest>=6.0"]},
-    python_requires=">=3.9",
+    python_requires=">=3.10",
 )
 ```
 

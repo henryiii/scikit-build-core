@@ -17,7 +17,7 @@ __lazy_modules__ = {
 import base64
 import csv
 import dataclasses
-import datetime
+import datetime as dt
 import hashlib
 import io
 import os
@@ -145,10 +145,10 @@ class WheelWriter:
         # 2107-12-31 23:59:59 (inclusive); clamp rather than let zipfile crash.
         timestamp = min(max(timestamp, MIN_TIMESTAMP), MAX_TIMESTAMP)
         # Not time.gmtime: it overflows past 2038 where time_t is 32 bits.
-        dt = datetime.datetime(
-            1970, 1, 1, tzinfo=datetime.timezone.utc
-        ) + datetime.timedelta(seconds=timestamp)
-        return (dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second)
+        when = dt.datetime(1970, 1, 1, tzinfo=dt.timezone.utc) + dt.timedelta(
+            seconds=timestamp
+        )
+        return (when.year, when.month, when.day, when.hour, when.minute, when.second)
 
     def dist_info_contents(self) -> dict[str, bytes]:
         entry_points = io.StringIO()

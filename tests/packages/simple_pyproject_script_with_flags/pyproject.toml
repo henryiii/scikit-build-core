@@ -7,7 +7,7 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "CMake.Example"
 version = "0.0.1"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [tool.scikit-build]
 wheel.py-api = "py3"

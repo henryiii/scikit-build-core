@@ -1,7 +1,7 @@
 import dataclasses
 import re
 from pathlib import Path
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 import pytest
 from packaging.version import Version
@@ -24,13 +24,13 @@ class SettingChecker:
     four: list[int] = dataclasses.field(default_factory=list)
     five: str = "empty"
     six: Path = Path("empty")
-    seven: Union[int, None] = None
-    eight: dict[str, Union[str, bool]] = dataclasses.field(default_factory=dict)
+    seven: int | None = None
+    eight: dict[str, str | bool] = dataclasses.field(default_factory=dict)
     nine: dict[str, int] = dataclasses.field(default_factory=dict)
     literal: Literal["one", "two", "three"] = "one"
     # TOML only
     ten: dict[str, Any] = dataclasses.field(default_factory=dict)
-    eleven: Optional[Union[list[str], dict[str, str]]] = None
+    eleven: list[str] | dict[str, str] | None = None
 
 
 def test_empty(monkeypatch):
@@ -112,7 +112,7 @@ def test_env_union(monkeypatch):
 
 
 def test_conf():
-    config_settings: dict[str, Union[str, list[str]]] = {
+    config_settings: dict[str, str | list[str]] = {
         "zero": "zero",
         "one": "one",
         "two": "2",
@@ -328,7 +328,7 @@ def test_env_nested(monkeypatch):
 
 
 def test_conf_nested():
-    config_settings: dict[str, Union[str, list[str]]] = {
+    config_settings: dict[str, str | list[str]] = {
         "zero": "zero",
         "one": "one",
         "two.zero": "zero",
@@ -491,11 +491,11 @@ def test_lists(monkeypatch):
 
 @dataclasses.dataclass
 class SettingListsOptional:
-    list0: Optional[list[str]] = None
-    list1: Optional[list[str]] = None
-    list2: Optional[list[str]] = None
-    list3: Optional[list[str]] = None
-    list4: Optional[list[str]] = None
+    list0: list[str] | None = None
+    list1: list[str] | None = None
+    list2: list[str] | None = None
+    list3: list[str] | None = None
+    list4: list[str] | None = None
 
 
 def test_lists_optional(monkeypatch):
@@ -638,8 +638,8 @@ def test_missing_opts_toml():
 @dataclasses.dataclass
 class SettingsOverride:
     dict0: dict[str, str] = dataclasses.field(default_factory=dict)
-    dict1: Optional[dict[str, int]] = None
-    dict2: Optional[dict[str, str]] = None
+    dict1: dict[str, int] | None = None
+    dict2: dict[str, str] | None = None
 
 
 def test_override():
@@ -661,13 +661,13 @@ def test_override():
 @dataclasses.dataclass
 class SettingVersion:
     first_req: Version = Version("1.2")
-    first_opt: Optional[Version] = None
+    first_opt: Version | None = None
     second_req: Version = Version("1.2")
-    second_opt: Optional[Version] = None
+    second_opt: Version | None = None
     third_req: Version = Version("1.2")
-    third_opt: Optional[Version] = None
+    third_opt: Version | None = None
     fourth_req: Version = Version("1.2")
-    fourth_opt: Optional[Version] = None
+    fourth_opt: Version | None = None
 
 
 def test_versions(monkeypatch):
@@ -694,7 +694,7 @@ def test_versions(monkeypatch):
 @dataclasses.dataclass
 class SettingLiteral:
     literal: Literal["one", "two", "three"]
-    optional: Optional[Literal["foo", "bar"]] = None
+    optional: Literal["foo", "bar"] | None = None
 
 
 def test_literal_failure_empty():
@@ -749,7 +749,7 @@ def test_literal_failure_not_contained_optional():
 @dataclasses.dataclass
 class ArraySetting:
     required: str
-    optional: Optional[str] = None
+    optional: str | None = None
 
 
 @dataclasses.dataclass

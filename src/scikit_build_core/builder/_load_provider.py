@@ -21,7 +21,6 @@ from typing import (
     Any,
     Literal,
     Protocol,
-    Union,
     cast,
     get_args,
     runtime_checkable,
@@ -96,12 +95,12 @@ class DynamicMetadataWheelProtocol(DynamicMetadataProtocol, Protocol):
     def dynamic_wheel(self, settings: Mapping[str, Any]) -> dict[str, bool]: ...
 
 
-DMProtocols = Union[
-    DynamicMetadataProtocol,
-    DynamicMetadataBuildStateProtocol,
-    DynamicMetadataRequirementsProtocol,
-    DynamicMetadataWheelProtocol,
-]
+DMProtocols = (
+    DynamicMetadataProtocol
+    | DynamicMetadataBuildStateProtocol
+    | DynamicMetadataRequirementsProtocol
+    | DynamicMetadataWheelProtocol
+)
 
 
 class _ProviderPathFinder(importlib.abc.MetaPathFinder):

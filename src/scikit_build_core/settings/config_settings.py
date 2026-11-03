@@ -10,7 +10,7 @@ __lazy_modules__ = {
 
 import dataclasses
 import re
-from typing import Any, Literal, Optional, Union
+from typing import Any, Literal
 
 from .._logging import rich_error
 from .skbuild_model import ScikitBuildSettings
@@ -61,12 +61,12 @@ class ConfigSettingDeclaration:
     The type of the setting.
     """
 
-    default: Optional[Union[str, bool]] = None
+    default: str | bool | None = None
     """
     The value used when the setting is not passed; must match the type.
     """
 
-    env: Optional[str] = None
+    env: str | None = None
     """
     An environment variable also read for this setting; it takes precedence over `-C`.
     """
@@ -146,16 +146,16 @@ def load_declarations(raw: Any) -> dict[str, ConfigSettingDeclaration]:
 
 def resolve_config_settings(
     decls: "Mapping[str, ConfigSettingDeclaration]",
-    config_settings: "Mapping[str, Union[str, list[str], bool]]",
+    config_settings: "Mapping[str, str | list[str] | bool]",
     env: "Mapping[str, str]",
-) -> dict[str, Optional[Union[str, bool]]]:
+) -> dict[str, str | bool | None]:
     """
     Resolve declared config-settings; precedence env var > config-setting >
     default, with ``None`` meaning "unset".
     """
-    values: dict[str, Optional[Union[str, bool]]] = {}
+    values: dict[str, str | bool | None] = {}
     for name, decl in decls.items():
-        raw: Optional[Union[str, bool]]
+        raw: str | bool | None
         if decl.env is not None and decl.env in env:
             raw = env[decl.env]
         elif name in config_settings:
@@ -180,7 +180,7 @@ def resolve_config_settings(
 
 
 def resolve_define_references(
-    tool_skb: dict[str, Any], values: "Mapping[str, Optional[Union[str, bool]]]"
+    tool_skb: dict[str, Any], values: "Mapping[str, str | bool | None]"
 ) -> None:
     """
     Replace ``{config-setting = "..."}`` values in the raw ``cmake.define``

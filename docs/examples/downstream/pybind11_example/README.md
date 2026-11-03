@@ -8,7 +8,8 @@
 | pip builds   | [![Pip Actions Status][actions-pip-badge]][actions-pip-link]       |
 
 An example project built with [pybind11](https://github.com/pybind/pybind11) and
-scikit-build-core. Python 3.9+ (see older commits for older versions of Python).
+scikit-build-core. Python 3.10+ (see older commits for older versions of
+Python).
 
 [gitter-badge]: https://badges.gitter.im/pybind/Lobby.svg
 [gitter-link]: https://gitter.im/pybind/Lobby

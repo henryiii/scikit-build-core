@@ -1,8 +1,5 @@
 # mypy: ignore-errors
-import sys
 from typing import Union, get_origin
-
-import pytest
 
 from scikit_build_core.utils.typing import is_union_type, process_union
 
@@ -20,9 +17,6 @@ class TestUnionTypeDetection:
     def test_none_not_recognized_as_union(self):
         assert not is_union_type(None)
 
-    @pytest.mark.skipif(
-        sys.version_info < (3, 10), reason="PEP 604 union syntax requires Python 3.10+"
-    )
     def test_pep604_union_type_recognized(self):
         import types
 
@@ -31,7 +25,7 @@ class TestUnionTypeDetection:
 
 class TestProcessUnion:
     def test_typing_union_processed(self):
-        typing_union = Union[list, str]
+        typing_union = Union[list, str]  # noqa: UP007
         result = process_union(typing_union)
         assert result is not None
         assert get_origin(result) is Union or result in (list, str)
@@ -39,7 +33,7 @@ class TestProcessUnion:
     def test_optional_unwrapped(self):
         from typing import Optional
 
-        optional_str = Optional[str]
+        optional_str = Optional[str]  # noqa: UP045
         result = process_union(optional_str)
         assert result is str
 
@@ -48,17 +42,11 @@ class TestProcessUnion:
         assert process_union(int) is int
         assert process_union(bool) is bool
 
-    @pytest.mark.skipif(
-        sys.version_info < (3, 10), reason="PEP 604 union syntax requires Python 3.10+"
-    )
     def test_pep604_union_processed(self):
         pep604_union = list[str] | str
         result = process_union(pep604_union)
         assert result is not None
 
-    @pytest.mark.skipif(
-        sys.version_info < (3, 10), reason="PEP 604 union syntax requires Python 3.10+"
-    )
     def test_pep604_optional_unwrapped(self):
         pep604_optional = str | None
         result = process_union(pep604_optional)

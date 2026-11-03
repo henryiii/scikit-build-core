@@ -115,7 +115,7 @@ def add_dynamic_import_names(
     names, namespaces = find_import_names(
         PurePosixPath(target.as_posix()) for _, target in files
     )
-    computed = dict(zip(IMPORT_FIELDS, (names, namespaces)))
+    computed = dict(zip(IMPORT_FIELDS, (names, namespaces), strict=True))
 
     # Compare without a "; private" suffix, so static entries win
     static = {

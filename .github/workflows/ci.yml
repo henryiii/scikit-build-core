@@ -110,18 +110,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "pypy-3.11", "3.13", "3.14", "3.15"]
+        python-version: ["3.10", "pypy-3.11", "3.13", "3.14", "3.15"]
         runs-on: [ubuntu-latest]
         cmake-version: ["3.15.x"]
 
         include:
+          - python-version: "pypy-3.10"
+            runs-on: windows-2022
+            cmake-version: "3.21.x"
           - python-version: "3.11"
             runs-on: windows-2022
             cmake-version: "3.26.x"
-          - python-version: "pypy-3.9"
+          - python-version: "pypy-3.10"
             runs-on: ubuntu-latest
             cmake-version: "3.15.x"
-          - python-version: "3.9"
+          - python-version: "3.10"
             runs-on: ubuntu-latest
             cmake-version: "3.20.x"
           - python-version: "3.14t"
@@ -130,7 +133,6 @@ jobs:
           - python-version: "3.15t"
             runs-on: ubuntu-latest
             cmake-version: "4.2.x"
-          # TODO: investigate failure with pypy-3.9/macos-latest (#1166)
           - python-version: "pypy-3.10"
             runs-on: macos-latest
             cmake-version: "4.1.x"
@@ -140,22 +142,19 @@ jobs:
           - python-version: "3.15t"
             runs-on: macos-latest
             cmake-version: "4.2.x"
-          - python-version: "3.9"
+          - python-version: "3.10"
             runs-on: macos-latest
             cmake-version: "3.21.x"
-          - python-version: "3.9"
+          - python-version: "3.10"
             runs-on: macos-15-intel
             cmake-version: "3.18.x"
           - python-version: "3.12"
             runs-on: macos-15-intel
             cmake-version: "3.29.x"
-          - python-version: "3.10"
-            runs-on: ubuntu-latest
-            cmake-version: "3.22.x"
           - python-version: "3.11"
             runs-on: ubuntu-latest
             cmake-version: "3.26.x"
-          - python-version: "3.9"
+          - python-version: "3.10"
             runs-on: windows-2022
             cmake-version: "3.24.x"
           # CMake < 4.2 cannot detect Visual Studio 2026, so rows testing older
@@ -175,7 +174,7 @@ jobs:
           - python-version: "3.14"
             runs-on: windows-2025-vs2026
             cmake-version: "4.2.x"
-          - python-version: "3.9"
+          - python-version: "3.10"
             runs-on: ubuntu-22.04
             cmake-version: "3.15.x"
           - python-version: "3.13"
@@ -260,7 +259,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9", "3.11"]
+        python-version: ["3.10", "3.11"]
         # TODO: investigate failure with macos-latest (#1167)
         # windows-2022: this job uses CMake 3.21, which cannot detect VS 2026;
         # windows-latest/windows-2025 are migrating to VS 2026 by default
@@ -329,7 +328,7 @@ jobs:
         run: /venv/bin/pytest
 
   cygwin:
-    name: Tests on 🐍 3.9 • cygwin
+    name: Tests on 🐍 3.12 • cygwin
     needs: changes
     if: fromJSON(needs.changes.outputs.run-tests)
     runs-on: windows-latest
@@ -345,17 +344,17 @@ jobs:
         with:
           platform: x86_64
           packages:
-            cmake ninja git make gcc-g++ python39 python39-devel python39-pip
+            cmake ninja git make gcc-g++ python312 python312-devel python312-pip
 
       # Does not include test-numpy, since there are no wheels for this platform
       - name: Install
         run:
-          python3.9 -m pip install . --group=test-core --group=test-pybind11
+          python3.12 -m pip install . --group=test-core --group=test-pybind11
           --group=test-parallel --group=test-schema --group=test-meta
 
       - name: Test package
         run:
-          python3.9 -m pytest -n auto -ra --showlocals -m "not virtualenv"
+          python3.12 -m pytest -n auto -ra --showlocals -m "not virtualenv"
           --durations=20
 
   msys:

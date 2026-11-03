@@ -7,6 +7,6 @@ find_package(
   REQUIRED)
 
 python_add_library(_core MODULE src/${SKBUILD_PROJECT_NAME}/_core.c WITH_SOABI
-                   USE_SABI 3.9)
+                   USE_SABI 3.10)
 
 install(TARGETS _core DESTINATION ${SKBUILD_PROJECT_NAME})

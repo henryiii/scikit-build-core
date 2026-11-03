@@ -9,7 +9,7 @@ authors = [
 ]
 description = "Build backend for CMake based projects"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "Apache-2.0"
 classifiers = [
     "Topic :: Scientific/Engineering",
@@ -20,7 +20,6 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -57,8 +56,7 @@ wheel-free-setuptools = [
     'setuptools>=70.1',
 ]
 setuptools = [
-    'setuptools >=45; python_version=="3.9"',
-    'setuptools >=49; python_version>="3.10" and python_version<"3.12"',
+    'setuptools >=49; python_version<"3.12"',
     'setuptools >=66.1; python_version>="3.12"',
 ]
 hatchling = [
@@ -110,8 +108,7 @@ test-core = [
     "pip>=24.1; python_version>='3.13'",
     "pytest >=7.2,!=9.1.0",  # 9.1.0 regression overriding params-fixtures: pytest-dev/pytest#13974
     "pytest-subprocess >=1.5",
-    'setuptools >=45; python_version=="3.9"',
-    'setuptools >=49; python_version>="3.10" and python_version<"3.12"',
+    'setuptools >=49; python_version<"3.12"',
     'setuptools >=66.1; python_version>="3.12"',
     "virtualenv >=20.20",
     "wheel >=0.40",
@@ -128,7 +125,6 @@ test-meta = [
 test-numpy = [
     { include-group = "test-core" },
     "numpy>=1.24.1; python_version<'3.15' and platform_python_implementation!='PyPy' and (platform_system != 'Windows' or platform_machine != 'ARM64')",
-    "numpy~=2.0; python_version=='3.9' and platform_python_implementation=='PyPy'",
     "numpy~=2.2; python_version=='3.10' and platform_python_implementation=='PyPy'",
     "numpy~=2.4.1; python_version=='3.11' and platform_python_implementation=='PyPy'",
 ]
@@ -138,8 +134,7 @@ test-pybind11 = [
 ]
 test-schema = [
     { include-group = "test-core" },
-    "fastjsonschema>=2.16.2; python_version>='3.10'",
-    "fastjsonschema>=2.16.2,!=2.22.0; python_version<'3.10'",
+    "fastjsonschema>=2.16.2",
     "validate-pyproject>=0.21",
 ]
 test = [
@@ -261,7 +256,7 @@ ignore_missing_imports = true
 
 
 [tool.pylint]
-py-version = "3.9"
+py-version = "3.10"
 jobs = "0"
 reports.output-format = "colorized"
 good-names = ["f"]
@@ -342,9 +337,6 @@ flake8-builtins.ignorelist = ["copyright", "license", "__doc__"]
 [tool.ruff.format]
 docstring-code-format = true
 
-
-[tool.ruff.lint.flake8-import-conventions.extend-aliases]
-datetime = "datetime"
 
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "typing.Callable".msg = "Use collections.abc.Callable instead."

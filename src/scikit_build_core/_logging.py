@@ -339,7 +339,7 @@ def rich_print(
     else:
         args_2 = (
             new if new == orig else f"{new}{_style.reset}"
-            for new, orig in zip(args_2_gen, args_1_gen)
+            for new, orig in zip(args_2_gen, args_1_gen, strict=True)
         )
     print(*args_2, flush=True, sep=sep, end=end, file=file)  # type: ignore[call-overload]
 

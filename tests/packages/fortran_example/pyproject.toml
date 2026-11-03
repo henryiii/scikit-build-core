@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 name = "fibby"
 version = "0.0.1"
 description = "a minimal example package (fortran version)"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
     "License :: OSI Approved :: BSD License",
 ]

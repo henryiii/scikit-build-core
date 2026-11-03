@@ -7,7 +7,7 @@ build-backend = "scikit_build_core.setuptools.build_meta"
 [project]
 name = "cmake-example"
 version = "0.0.1"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [tool.scikit-build]
 cmake.source-dir = "."

@@ -18,7 +18,7 @@ import dataclasses
 import json
 import typing
 from pathlib import Path
-from typing import Any, Callable, TypeVar, Union, get_args, get_origin  # noqa: TID251
+from typing import Any, TypeVar, get_args, get_origin
 
 from .._compat.builtins import ExceptionGroup, add_note
 from ..utils.typing import (
@@ -31,6 +31,10 @@ from .model.cmakefiles import CMakeFiles
 from .model.codemodel import CodeModel, Directory, Target
 from .model.index import Index
 from .model.toolchains import Toolchains
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 __all__ = ["load_reply_dir"]
 
@@ -131,7 +135,7 @@ class Converter:
     @typing.overload
     def _convert_any(self, item: Any, target: Any) -> Any: ...
 
-    def _convert_any(self, item: Any, target: Union[type[T], Any]) -> Any:
+    def _convert_any(self, item: Any, target: type[T] | Any) -> Any:
         target = process_union(target)
         if dataclasses.is_dataclass(target) and isinstance(target, type):
             # We don't have DataclassInstance exposed in typing yet

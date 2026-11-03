@@ -3,6 +3,7 @@ from __future__ import annotations
 __lazy_modules__ = {
     "ast",
     "inspect",
+    "itertools",
     "packaging.specifiers",
     "packaging.version",
     "pathlib",
@@ -14,6 +15,7 @@ __lazy_modules__ = {
 import ast
 import dataclasses
 import inspect
+import itertools
 import textwrap
 import typing
 from pathlib import Path
@@ -23,7 +25,7 @@ from packaging.specifiers import SpecifierSet
 from packaging.version import Version
 
 from .. import __version__
-from ..utils.typing import NoneType
+from ..utils.typing import NoneType, is_union_type
 
 TYPE_CHECKING = False
 
@@ -57,7 +59,7 @@ def pull_docs(dc: type[object]) -> dict[str, str]:
     body = obody.body
     return {
         assign.target.id: textwrap.dedent(_get_value(expr.value)).strip()  # type: ignore[union-attr]
-        for assign, expr in zip(body[:-1], body[1:])
+        for assign, expr in itertools.pairwise(body)
         if isinstance(assign, ast.AnnAssign) and isinstance(expr, ast.Expr)
     }
 
@@ -75,7 +77,7 @@ def _flat_expressible(field_type: typing.Any) -> bool:
     origin = get_origin(field_type)
     if origin is Annotated:
         return _flat_expressible(get_args(field_type)[0])
-    if origin is typing.Union:
+    if is_union_type(origin):
         return all(
             _flat_expressible(arg)
             for arg in get_args(field_type)
@@ -112,7 +114,7 @@ def sanitize_default_field(text: str) -> str:
 
 
 def is_optional(field: type) -> bool:
-    return get_origin(field) is typing.Union and NoneType in get_args(field)
+    return is_union_type(get_origin(field)) and NoneType in get_args(field)
 
 
 def get_display_type(field_type: type | str) -> str:
@@ -121,7 +123,7 @@ def get_display_type(field_type: type | str) -> str:
     if is_optional(field_type):
         # Special case for optional, we just take the first part
         return get_display_type(get_args(field_type)[0])
-    if get_origin(field_type) is typing.Union:
+    if is_union_type(get_origin(field_type)):
         return " | ".join(
             get_display_type(a) for a in get_args(field_type) if a is not NoneType
         )
@@ -139,9 +141,6 @@ def get_display_type(field_type: type | str) -> str:
         # Display the real inner type, not the annotation metadata (e.g.
         # ``Annotated[Dict[...], "EnvVar"]`` should show the dict, not "EnvVar").
         return get_display_type(get_args(field_type)[0])
-    if field_type is typing.Any:
-        # Workaround for python<3.10 where typing.Any.__name__ does not evaluate
-        return "Any"
     # Otherwise just get the formatted form of the `type` object
     return field_type.__name__
 

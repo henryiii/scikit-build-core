@@ -5,9 +5,6 @@ build-backend = "scikit_build_core.build"
 [project]
 name = "navigate_editable"
 version = "0.0.1"
-dependencies = [
-    "importlib-resources; python_version<'3.9'"
-]
 
 [tool.scikit-build]
 wheel.packages = ["python/shared_pkg"]

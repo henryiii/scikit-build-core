@@ -292,38 +292,6 @@ class _ScikitBuildNamespaceLoader:
         self._skbuild_finder.rebuild()
 
 
-def _patch_importlib_resources_for_python39() -> None:
-    """
-    Make importlib.resources.files() honor the editable resource reader on Python 3.9.
-
-    Python 3.9 ignores get_resource_reader().files() and falls back to
-    Path(spec.origin).parent, which points at the source tree for editable
-    installs. Patch that fallback so redirect packages can expose build-tree
-    resources there too.
-    """
-
-    if sys.version_info[:2] != (3, 9):
-        return
-
-    from importlib.resources import _common  # type: ignore[attr-defined]
-
-    if getattr(_common, "_skbuild_editable_patched", False):
-        return
-
-    original_fallback_resources = _common.fallback_resources
-
-    def fallback_resources(spec: object) -> object:
-        loader = getattr(spec, "loader", None)
-        if isinstance(
-            loader, (_ScikitBuildResourceLoaderWrapper, _ScikitBuildNamespaceLoader)
-        ):
-            return loader.get_resource_reader(getattr(spec, "name", "")).files()
-        return original_fallback_resources(spec)
-
-    _common.fallback_resources = fallback_resources
-    _common._skbuild_editable_patched = True  # pylint: disable=protected-access
-
-
 def _run_editable_rebuild(
     *,
     path: str | None,
@@ -745,7 +713,6 @@ def install(
             and finder.known_wheel_files == known_wheel_files
         ):
             return
-    _patch_importlib_resources_for_python39()
     sys.meta_path.insert(
         0,
         ScikitBuildRedirectingFinder(

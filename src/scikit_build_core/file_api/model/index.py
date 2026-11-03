@@ -1,6 +1,5 @@
 __lazy_modules__ = {
     "pathlib",
-    "typing",
     f"{__spec__.parent}.cache",
     f"{__spec__.parent}.cmakefiles",
     f"{__spec__.parent}.codemodel",
@@ -10,7 +9,6 @@ __lazy_modules__ = {
 
 import dataclasses
 from pathlib import Path
-from typing import Optional
 
 from .cache import Cache
 from .cmakefiles import CMakeFiles
@@ -54,8 +52,8 @@ class CMakePaths:
 @dataclasses.dataclass(frozen=True)
 class Generator:
     name: str
-    multiConfig: Optional[bool] = None
-    platform: Optional[str] = None
+    multiConfig: bool | None = None
+    platform: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -67,10 +65,10 @@ class CMake:
 
 @dataclasses.dataclass(frozen=True)
 class Reply:
-    codemodel_v2: Optional[CodeModel] = None
-    cache_v2: Optional[Cache] = None
-    cmakefiles_v1: Optional[CMakeFiles] = None
-    toolchains_v1: Optional[Toolchains] = None
+    codemodel_v2: CodeModel | None = None
+    cache_v2: Cache | None = None
+    cmakefiles_v1: CMakeFiles | None = None
+    toolchains_v1: Toolchains | None = None
 
 
 @dataclasses.dataclass(frozen=True)

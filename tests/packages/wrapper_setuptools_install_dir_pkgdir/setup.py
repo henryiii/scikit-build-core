@@ -11,5 +11,5 @@ setup(
     package_dir={"wrapper_pkgdir": "src/wrapper_pkgdir"},
     packages=["wrapper_pkgdir"],
     zip_safe=False,
-    python_requires=">=3.9",
+    python_requires=">=3.10",
 )

@@ -1,8 +1,7 @@
-__lazy_modules__ = {"pathlib", "typing", f"{__spec__.parent}.common"}
+__lazy_modules__ = {"pathlib", f"{__spec__.parent}.common"}
 
 import dataclasses
 from pathlib import Path
-from typing import Optional
 
 from .common import APIVersion, Paths
 
@@ -27,7 +26,7 @@ class GlobDependent:
     recurse: bool = False
     listDirectories: bool = False
     followSymlinks: bool = False
-    relative: Optional[str] = None
+    relative: str | None = None
     paths: list[Path] = dataclasses.field(default_factory=list)
 
 

@@ -1,8 +1,7 @@
-__lazy_modules__ = {"pathlib", "typing"}
+__lazy_modules__ = {"pathlib"}
 
 import dataclasses
 from pathlib import Path
-from typing import Optional
 
 from .common import APIVersion
 
@@ -24,11 +23,11 @@ class Implicit:
 @dataclasses.dataclass(frozen=True)
 class Compiler:
     implicit: Implicit
-    path: Optional[Path] = None
-    commandFragment: Optional[str] = None
-    id: Optional[str] = None
-    version: Optional[str] = None
-    target: Optional[str] = None
+    path: Path | None = None
+    commandFragment: str | None = None
+    id: str | None = None
+    version: str | None = None
+    target: str | None = None
 
 
 @dataclasses.dataclass(frozen=True)

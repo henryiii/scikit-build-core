@@ -417,16 +417,16 @@ support:
 
 ```toml
 [tool.scikit-build]
-wheel.py-api = "cp39"
+wheel.py-api = "cp310"
 ```
 
-| `wheel.py-api`   | Use for                                           | Resulting tags     |
-| ---------------- | ------------------------------------------------- | ------------------ |
-| `"cp39"`         | Limited API / Stable ABI extension (CPython 3.9+) | `cp39-abi3`        |
-| `"py3"`          | Extension not using the Python API                | `py3-none`         |
-| `"py2.py3"`      | Same, but installable on Python 2 as well         | `py2.py3-none`     |
-| `"cp315t"`       | Free-threaded stable ABI ([PEP 803][])            | `cp315-abi3t`      |
-| `"cp315.cp315t"` | Both stable ABIs from one free-threaded build     | `cp315-abi3.abi3t` |
+| `wheel.py-api`   | Use for                                            | Resulting tags     |
+| ---------------- | -------------------------------------------------- | ------------------ |
+| `"cp310"`        | Limited API / Stable ABI extension (CPython 3.10+) | `cp310-abi3`       |
+| `"py3"`          | Extension not using the Python API                 | `py3-none`         |
+| `"py2.py3"`      | Same, but installable on Python 2 as well          | `py2.py3-none`     |
+| `"cp315t"`       | Free-threaded stable ABI ([PEP 803][])             | `cp315-abi3t`      |
+| `"cp315.cp315t"` | Both stable ABIs from one free-threaded build      | `cp315-abi3.abi3t` |
 
 Scikit-build-core will only target ABI3 if the version of Python is equal to or
 newer than the one you set. `cp315t` also sets `Py_TARGET_ABI3T` (if using CMake

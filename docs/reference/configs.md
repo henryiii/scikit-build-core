@@ -803,7 +803,7 @@ print(mk_skbuild_docs())
 
   Try to build a reproducible distribution.
 
-  Unix and Python 3.9+ recommended.
+  Unix and Python 3.10+ recommended.
 
   ``SOURCE_DATE_EPOCH`` will be used for timestamps, or a fixed value if not set.
 ```
@@ -1043,7 +1043,7 @@ print(mk_skbuild_docs())
 
   The default (empty string) will use the default Python version.
 
-  You can also set this to "cp39" to enable the CPython 3.9+ Stable
+  You can also set this to "cp310" to enable the CPython 3.10+ Stable
   ABI / Limited API (only on CPython and if the version is sufficient,
   otherwise this has no effect). For free-threaded Python, you can use
   "cp315t" to enable the free-threaded stable ABI (only on CPython
@@ -1074,7 +1074,7 @@ print(mk_skbuild_docs())
 
   Try to build a reproducible wheel.
 
-  Unix and Python 3.9+ recommended.
+  Unix and Python 3.10+ recommended.
 
   When enabled, archive timestamps and file permissions are normalized, and
   ``SOURCE_DATE_EPOCH`` is exported to the CMake build (if not already set) so

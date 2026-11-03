@@ -14,8 +14,6 @@ assertion block below documents one supported pattern.
 
 from __future__ import annotations
 
-import sys
-
 import pytest
 
 
@@ -38,10 +36,6 @@ import pytest
         ),
     ],
     indirect=True,
-)
-@pytest.mark.skipif(
-    sys.version_info < (3, 9),
-    reason="importlib.resources.files is introduced in Python 3.9",
 )
 def test_generated_files(editable, isolated):
     isolated.install(

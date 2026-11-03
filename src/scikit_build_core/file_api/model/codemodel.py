@@ -1,13 +1,11 @@
 __lazy_modules__ = {
     "pathlib",
-    "typing",
     f"{__spec__.parent}.common",
     f"{__spec__.parent}.directory",
 }
 
 import dataclasses
 from pathlib import Path
-from typing import Optional
 
 from .common import APIVersion, Paths
 from .directory import BacktraceGraph, InstallRule
@@ -60,24 +58,24 @@ class Directory:
     source: Path
     build: Path
     projectIndex: int
-    jsonFile: Optional[Path] = None
-    parentIndex: Optional[int] = None
+    jsonFile: Path | None = None
+    parentIndex: int | None = None
     childIndexes: list[int] = dataclasses.field(default_factory=list)
     targetIndexes: list[int] = dataclasses.field(default_factory=list)
     abstractTargetIndexes: list[int] = dataclasses.field(default_factory=list)
-    minimumCMakeVersion: Optional[StringCMakeVersion] = None
+    minimumCMakeVersion: StringCMakeVersion | None = None
     hasInstallRule: bool = False
     # From the "directory" object loaded via jsonFile:
     installers: list[InstallRule] = dataclasses.field(default_factory=list)
-    backtraceGraph: Optional[BacktraceGraph] = None
-    codemodelVersion: Optional[APIVersion] = None
+    backtraceGraph: BacktraceGraph | None = None
+    codemodelVersion: APIVersion | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class Project:
     name: str
     directoryIndexes: list[int]
-    parentIndex: Optional[int] = None
+    parentIndex: int | None = None
     childIndexes: list[int] = dataclasses.field(default_factory=list)
     targetIndexes: list[int] = dataclasses.field(default_factory=list)
     abstractTargetIndexes: list[int] = dataclasses.field(default_factory=list)
@@ -96,7 +94,7 @@ class Prefix:
 @dataclasses.dataclass(frozen=True)
 class Destination:
     path: Path
-    backtrace: Optional[int] = None
+    backtrace: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -119,25 +117,25 @@ class Sysroot:
 @dataclasses.dataclass(frozen=True)
 class Link:
     language: str
-    commandFragments: Optional[list[CommandFragment]] = dataclasses.field(
+    commandFragments: list[CommandFragment] | None = dataclasses.field(
         default_factory=list
     )
-    lto: Optional[bool] = None
-    sysroot: Optional[Sysroot] = None
+    lto: bool | None = None
+    sysroot: Sysroot | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class Archive:
-    commandFragments: Optional[list[CommandFragment]] = dataclasses.field(
+    commandFragments: list[CommandFragment] | None = dataclasses.field(
         default_factory=list
     )
-    lto: Optional[bool] = None
+    lto: bool | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class Dependency:
     id: str
-    backtrace: Optional[int] = None
+    backtrace: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -148,17 +146,17 @@ class FromDependency:
 @dataclasses.dataclass(frozen=True)
 class LinkLibrary:
     # Exactly one of id or fragment is present
-    id: Optional[str] = None
-    fragment: Optional[str] = None
-    backtrace: Optional[int] = None
-    fromDependency: Optional[FromDependency] = None
+    id: str | None = None
+    fragment: str | None = None
+    backtrace: int | None = None
+    fromDependency: FromDependency | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class CompileDependency:
     id: str
-    backtrace: Optional[int] = None
-    fromDependency: Optional[FromDependency] = None
+    backtrace: int | None = None
+    fromDependency: FromDependency | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -175,7 +173,7 @@ class Launcher:
 
 @dataclasses.dataclass(frozen=True)
 class Debugger:
-    workingDirectory: Optional[Path] = None
+    workingDirectory: Path | None = None
 
 
 @dataclasses.dataclass(frozen=True)
@@ -202,33 +200,33 @@ class LanguageStandard:
 @dataclasses.dataclass(frozen=True)
 class CompileCommandFragment:
     fragment: str
-    backtrace: Optional[int] = None
+    backtrace: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class Include:
     path: Path
-    isSystem: Optional[bool] = None
-    backtrace: Optional[int] = None
+    isSystem: bool | None = None
+    backtrace: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class PrecompileHeader:
     header: Path
-    backtrace: Optional[int] = None
+    backtrace: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class Define:
     define: str
-    backtrace: Optional[int] = None
+    backtrace: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class CompileGroup:
     sourceIndexes: list[int]
     language: str
-    languageStandard: Optional[LanguageStandard] = None
+    languageStandard: LanguageStandard | None = None
     compileCommandFragments: list[CompileCommandFragment] = dataclasses.field(
         default_factory=list
     )
@@ -236,18 +234,18 @@ class CompileGroup:
     frameworks: list[Include] = dataclasses.field(default_factory=list)
     precompileHeaders: list[PrecompileHeader] = dataclasses.field(default_factory=list)
     defines: list[Define] = dataclasses.field(default_factory=list)
-    sysroot: Optional[Sysroot] = None
+    sysroot: Sysroot | None = None
 
 
 @dataclasses.dataclass(frozen=True)
 class Source:
     path: Path
-    compileGroupIndex: Optional[int] = None
-    sourceGroupIndex: Optional[int] = None
-    isGenerated: Optional[bool] = None
-    fileSetIndex: Optional[int] = None
+    compileGroupIndex: int | None = None
+    sourceGroupIndex: int | None = None
+    isGenerated: bool | None = None
+    fileSetIndex: int | None = None
     fileSetIndexes: list[int] = dataclasses.field(default_factory=list)
-    backtrace: Optional[int] = None
+    backtrace: int | None = None
     backtraces: list[int] = dataclasses.field(default_factory=list)
 
 
@@ -258,21 +256,21 @@ class Target:
     type: str
     paths: Paths
     sources: list[Source] = dataclasses.field(default_factory=list)
-    nameOnDisk: Optional[Path] = None
+    nameOnDisk: Path | None = None
     artifacts: list[Artifact] = dataclasses.field(default_factory=list)
-    isGeneratorProvided: Optional[bool] = None
-    install: Optional[Install] = None
-    link: Optional[Link] = None
-    archive: Optional[Archive] = None
+    isGeneratorProvided: bool | None = None
+    install: Install | None = None
+    link: Link | None = None
+    archive: Archive | None = None
     dependencies: list[Dependency] = dataclasses.field(default_factory=list)
-    backtrace: Optional[int] = None
-    folder: Optional[Folder] = None
+    backtrace: int | None = None
+    folder: Folder | None = None
     launchers: list[Launcher] = dataclasses.field(default_factory=list)
-    debugger: Optional[Debugger] = None
-    imported: Optional[bool] = None
-    local: Optional[bool] = None
-    abstract: Optional[bool] = None
-    symbolic: Optional[bool] = None
+    debugger: Debugger | None = None
+    imported: bool | None = None
+    local: bool | None = None
+    abstract: bool | None = None
+    symbolic: bool | None = None
     linkLibraries: list[LinkLibrary] = dataclasses.field(default_factory=list)
     interfaceLinkLibraries: list[LinkLibrary] = dataclasses.field(default_factory=list)
     compileDependencies: list[CompileDependency] = dataclasses.field(
@@ -287,11 +285,11 @@ class Target:
     interfaceSources: list[Source] = dataclasses.field(default_factory=list)
     sourceGroups: list[SourceGroup] = dataclasses.field(default_factory=list)
     compileGroups: list[CompileGroup] = dataclasses.field(default_factory=list)
-    backtraceGraph: Optional[BacktraceGraph] = None
-    codemodelVersion: Optional[APIVersion] = None
+    backtraceGraph: BacktraceGraph | None = None
+    codemodelVersion: APIVersion | None = None
     # From the codemodel reference to this target:
-    directoryIndex: Optional[int] = None
-    projectIndex: Optional[int] = None
+    directoryIndex: int | None = None
+    projectIndex: int | None = None
 
 
 @dataclasses.dataclass(frozen=True)

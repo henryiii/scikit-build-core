@@ -48,7 +48,7 @@ _BACKENDS = {
     "cython": _Backend(requires=("cython", "cython-cmake")),
     "swig": _Backend(requires=("swig",)),
     "fortran": _Backend(requires=("numpy", "f2py-cmake"), dependencies=("numpy",)),
-    "abi3": _Backend(tool='\n[tool.scikit-build]\nwheel.py-api = "cp39"\n'),
+    "abi3": _Backend(tool='\n[tool.scikit-build]\nwheel.py-api = "cp310"\n'),
     "abi3t": _Backend(
         tool=(
             "\n[tool.scikit-build]\n"

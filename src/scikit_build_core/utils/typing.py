@@ -2,7 +2,7 @@ from __future__ import annotations
 
 __lazy_modules__ = {"types", "typing"}
 
-import sys
+from types import NoneType, UnionType
 from typing import Annotated, Any, Union, get_args, get_origin
 
 __all__ = [
@@ -19,21 +19,6 @@ def __dir__() -> list[str]:
     return __all__
 
 
-if sys.version_info >= (3, 10):
-    from types import NoneType
-else:
-    NoneType = type(None)
-
-# Runtime check for PEP 604 union syntax (A | B) support
-# types.UnionType only exists in Python 3.10+
-if sys.version_info >= (3, 10):
-    from types import UnionType as _UnionType
-else:
-
-    class _UnionType:
-        pass
-
-
 def process_union(target: Any, /) -> Any:
     """
     Filters None out of Unions. If a Union only has one item, return that item.
@@ -45,7 +30,7 @@ def process_union(target: Any, /) -> Any:
         non_none_args = [a for a in get_args(target) if a is not NoneType]
         if len(non_none_args) == 1:
             return non_none_args[0]
-        return Union[tuple(non_none_args)]
+        return Union[tuple(non_none_args)]  # noqa: UP007
 
     return target
 
@@ -80,7 +65,7 @@ def is_union_type(raw_target: Any) -> bool:
     Check if raw_target is a Union type (either ``typing.Union`` or ``types.UnionType``).
     Handles both ``typing.Union[A, B]`` and PEP 604 syntax (``A | B``).
     """
-    return raw_target is Union or raw_target is _UnionType
+    return raw_target is Union or raw_target is UnionType
 
 
 def get_inner_type(_target: type[Any], /) -> type[Any]:
