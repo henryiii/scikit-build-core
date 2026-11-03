@@ -343,6 +343,9 @@ flake8-builtins.ignorelist = ["copyright", "license", "__doc__"]
 docstring-code-format = true
 
 
+[tool.ruff.lint.flake8-import-conventions.extend-aliases]
+datetime = "datetime"
+
 [tool.ruff.lint.flake8-tidy-imports.banned-api]
 "typing.Callable".msg = "Use collections.abc.Callable instead."
 "typing.Iterator".msg = "Use collections.abc.Iterator instead."
