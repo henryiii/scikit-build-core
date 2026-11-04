@@ -17,6 +17,8 @@ from scikit_build_core.builder.get_requires import GetRequires
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from pytest_subprocess import FakeProcess
 
 ninja = [] if sysconfig.get_platform().startswith("win") else ["ninja>=1.5"]
@@ -117,6 +119,20 @@ def test_get_requires_for_build_sdist_cmake(fp: FakeProcess):
     assert set(get_requires_for_build_sdist({"sdist.cmake": "True"})) == expected
 
 
+@pytest.fixture
+def write_pyproject(
+    fp: FakeProcess, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Callable[[str], int]:
+    monkeypatch.chdir(tmp_path)
+    fp.register(
+        [Path("cmake/path"), "-E", "capabilities"],
+        stdout='{"version":{"string":"3.14.0"}}',
+    )
+    return lambda text: tmp_path.joinpath("pyproject.toml").write_text(
+        text, encoding="utf-8"
+    )
+
+
 @pytest.mark.parametrize(
     ("hook", "config", "expected"),
     [
@@ -138,22 +154,12 @@ def test_get_requires_for_build_sdist_cmake(fp: FakeProcess):
     ],
 )
 def test_get_requires_for_build_with_variant(
-    fp: FakeProcess,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    write_pyproject: Callable[[str], int],
     hook,
     config: dict[str, str],
     expected: bool,
 ):
-    tmp_path.joinpath("pyproject.toml").write_text(
-        '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n',
-        encoding="utf-8",
-    )
-    monkeypatch.chdir(tmp_path)
-    fp.register(
-        [Path("cmake/path"), "-E", "capabilities"],
-        stdout='{"version":{"string":"3.14.0"}}',
-    )
+    write_pyproject('[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n')
     assert (VARIANTLIB_BUILD_REQUIREMENT in hook(config)) is expected
 
 
@@ -198,18 +204,11 @@ aot.level = ["v3"]
     ],
 )
 def test_get_requires_variant_providers(
-    fp: FakeProcess,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    write_pyproject: Callable[[str], int],
     config: dict[str, str | list[str]],
     expected: set[str],
 ):
-    tmp_path.joinpath("pyproject.toml").write_text(VARIANT_PYPROJECT, encoding="utf-8")
-    monkeypatch.chdir(tmp_path)
-    fp.register(
-        [Path("cmake/path"), "-E", "capabilities"],
-        stdout='{"version":{"string":"3.14.0"}}',
-    )
+    write_pyproject(VARIANT_PYPROJECT)
     assert (
         set(get_requires_for_build_wheel(config)) - {"cmake>=3.15", *ninja} == expected
     )
@@ -257,20 +256,13 @@ def test_get_requires_variant_providers(
     ],
 )
 def test_get_requires_variant_errors(
-    fp: FakeProcess,
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+    write_pyproject: Callable[[str], int],
     capsys: pytest.CaptureFixture[str],
     pyproject: str,
     config: dict[str, str | list[str]],
     match: str,
 ):
-    tmp_path.joinpath("pyproject.toml").write_text(pyproject, encoding="utf-8")
-    monkeypatch.chdir(tmp_path)
-    fp.register(
-        [Path("cmake/path"), "-E", "capabilities"],
-        stdout='{"version":{"string":"3.14.0"}}',
-    )
+    write_pyproject(pyproject)
     with pytest.raises(SystemExit):
         get_requires_for_build_wheel({"experimental": "true", **config})
     assert re.search(match, capsys.readouterr().err)

@@ -4,7 +4,7 @@ __lazy_modules__ = {"importlib", "typing"}
 
 import dataclasses
 import importlib
-from typing import Any
+from typing import Any, NoReturn
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -43,6 +43,15 @@ def has_variant_config(settings: ScikitBuildSettings) -> bool:
     )
 
 
+def _no_label_entry(label: str) -> NoReturn:
+    from ._logging import rich_error
+
+    rich_error(
+        "variant-label '{label}' has no [variant.variants.{label}] entry and no variant properties were given",
+        label=label,
+    )
+
+
 def _variant_namespaces(
     settings: ScikitBuildSettings, variant_table: Mapping[str, Any]
 ) -> set[str]:
@@ -54,9 +63,7 @@ def _variant_namespaces(
         # label-only selection: look the properties up in [variant.variants]
         variant = variant_table.get("variants", {}).get(settings.variant_label)
         if not isinstance(variant, dict):
-            rich_error(
-                f"variant-label '{settings.variant_label}' has no [variant.variants.{settings.variant_label}] entry and no variant properties were given"
-            )
+            _no_label_entry(settings.variant_label)
         return set(variant)
 
     namespaces = set()
@@ -64,7 +71,8 @@ def _variant_namespaces(
         parts = [part.strip() for part in prop.split("::")]
         if len(parts) != 3 or not all(parts):
             rich_error(
-                f"variant property {prop!r} is invalid, expected format: 'namespace :: feature :: value'"
+                "variant property {prop!r} is invalid, expected format: 'namespace :: feature :: value'",
+                prop=prop,
             )
         namespaces.add(parts[0])
     return namespaces
@@ -89,14 +97,19 @@ def variant_build_requires(
         provider = providers.get(namespace)
         if provider is None:
             rich_error(
-                f"variant namespace '{namespace}' has no [variant.providers.{namespace}] entry"
+                "variant namespace '{ns}' has no [variant.providers.{ns}] entry",
+                ns=namespace,
             )
         if not isinstance(provider, dict):
-            rich_error(f"[variant.providers.{namespace}] must be a table")
+            rich_error("[variant.providers.{ns}] must be a table", ns=namespace)
         for key in ("build-requires", "requires"):
             plugin_requires = provider.get(key, [])
             if not isinstance(plugin_requires, list):
-                rich_error(f"[variant.providers.{namespace}] {key} must be a list")
+                rich_error(
+                    "[variant.providers.{ns}] {key} must be a list",
+                    ns=namespace,
+                    key=key,
+                )
             requires.extend(plugin_requires)
     return requires
 
@@ -192,32 +205,31 @@ def get_wheel_variant(
             variant_property.from_str(value)
             for value in [*settings.variant_name, *settings.variant]
         ]
-        if not properties and settings.variant_label:
+        label = settings.variant_label
+        declared = variant_info.variants.get(label) if label else None
+        if not properties and label:
             # label-only selection from [variant.variants.<label>]
-            variant = variant_info.variants.get(settings.variant_label)
-            if variant is None:
-                rich_error(
-                    f"variant-label '{settings.variant_label}' has no [variant.variants.{settings.variant_label}] entry and no variant properties were given"
-                )
-        elif settings.variant_label:
-            variant = variant_description(properties, label=settings.variant_label)
+            if declared is None:
+                _no_label_entry(label)
+            variant = declared
+        elif label:
+            variant = variant_description(properties, label=label)
             # PEP 825: a label maps to exactly one property set per version
-            declared = variant_info.variants.get(settings.variant_label)
-            if declared is not None and {p.to_str() for p in declared.properties} != {
-                p.to_str() for p in variant.properties
-            }:
+            if declared is not None and declared.properties != variant.properties:
                 rich_error(
-                    f"variant-label '{settings.variant_label}' properties do not match [variant.variants.{settings.variant_label}], which declares: {', '.join(sorted(p.to_str() for p in declared.properties))}"
+                    "variant-label '{label}' properties do not match [variant.variants.{label}], which declares: {declared}",
+                    label=label,
+                    declared=", ".join(p.to_str() for p in declared.properties),
                 )
         else:
             variant = variant_description(properties)
-        variant_label = variant.label
         missing = {p.namespace for p in variant.properties} - set(
             variant_info.namespace_priorities
         )
         if missing:
             rich_error(
-                f"variant namespace(s) {', '.join(sorted(missing))} are missing from [variant.providers] / [variant.default-priorities]"
+                "variant namespace(s) {missing} are missing from [variant.providers] / [variant.default-priorities]",
+                missing=", ".join(sorted(missing)),
             )
         if variant.properties:
             _validate_with_plugins(validate_variant, variant, variant_info)
@@ -226,11 +238,10 @@ def get_wheel_variant(
             variant_info=variant_info,
         ).encode("utf-8")
     except (validation_error, plugin_error) as err:
-        # rich_error formats its arguments; plugin tracebacks may contain braces
-        rich_error(str(err).replace("{", "{{").replace("}", "}}"))
+        rich_error("{err}", err=err)
 
     if metadata.version is None:
         msg = "project.version is required to build variant wheel metadata"
         raise AssertionError(msg)
 
-    return WheelVariant(label=variant_label, dist_info_contents=dist_info_contents)
+    return WheelVariant(label=variant.label, dist_info_contents=dist_info_contents)

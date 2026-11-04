@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import sys
 import textwrap
 import types
@@ -121,8 +122,22 @@ def test_license_normalization():
     assert metadata.license == "Apache-2.0"
 
 
+VARIANT_TABLE = """
+[variant.default-priorities]
+namespace = ["cpu"]
+[variant.providers.cpu]
+requires = ["cpu-variant-provider"]
+[variant.variants.cpu]
+cpu.abi = ["cp313"]
+"""
+
+
 @pytest.fixture
-def fake_variantlib(monkeypatch: pytest.MonkeyPatch) -> None:
+def fake_variantlib(fp, monkeypatch: pytest.MonkeyPatch) -> None:
+    fp.pass_command([sys.executable, fp.any()])
+    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
+    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
+
     variantlib: Any = types.ModuleType("variantlib")
     variantlib.__path__ = []  # mark as a package so submodule imports resolve
     variantlib_api: Any = types.ModuleType("variantlib.api")
@@ -138,21 +153,22 @@ def fake_variantlib(monkeypatch: pytest.MonkeyPatch) -> None:
     class PluginError(Exception):
         pass
 
+    @dataclasses.dataclass(frozen=True, order=True)
     class VariantProperty:
-        def __init__(self, raw: str) -> None:
-            self.raw = raw
-            self.namespace = raw.split("::", 1)[0].strip()
+        namespace: str
+        feature: str
+        value: str
 
         @classmethod
         def from_str(cls, raw: str):
-            return cls(raw)
+            return cls(*(part.strip() for part in raw.split("::")))
 
         def to_str(self) -> str:
-            return " :: ".join(part.strip() for part in self.raw.split("::"))
+            return f"{self.namespace} :: {self.feature} :: {self.value}"
 
     class VariantDescription:
         def __init__(self, properties, label="") -> None:
-            self.properties = properties
+            self.properties = sorted(properties)
             self.label = label or "computed"
 
     class VariantPyProjectToml:
@@ -162,7 +178,7 @@ def fake_variantlib(monkeypatch: pytest.MonkeyPatch) -> None:
             self.variants = {
                 label: VariantDescription(
                     [
-                        VariantProperty(f"{ns} :: {feat} :: {val}")
+                        VariantProperty(ns, feat, val)
                         for ns, feats in props.items()
                         for feat, vals in feats.items()
                         for val in vals
@@ -190,7 +206,7 @@ def fake_variantlib(monkeypatch: pytest.MonkeyPatch) -> None:
 
     def make_variant_dist_info(variant, *, variant_info):
         _ = variant_info
-        raw = ",".join(prop.raw for prop in variant.properties)
+        raw = ",".join(prop.to_str() for prop in variant.properties)
         return f"label={variant.label};properties={raw}"
 
     variantlib_api.make_variant_dist_info = make_variant_dist_info
@@ -222,16 +238,9 @@ def fake_variantlib(monkeypatch: pytest.MonkeyPatch) -> None:
     ],
 )
 @pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
-def test_prepare_metadata_for_build_wheel_variant(fp, tmp_path, config):
+def test_prepare_metadata_for_build_wheel_variant(tmp_path, config):
     with Path("pyproject.toml").open("a", encoding="utf-8") as f:
-        f.write(
-            '[variant.default-priorities]\nnamespace = ["cpu"]\n'
-            '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n'
-            '[variant.variants.cpu]\ncpu.abi = ["cp313"]\n'
-        )
-    fp.pass_command([sys.executable, fp.any()])
-    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
-    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
+        f.write(VARIANT_TABLE)
 
     mddir = tmp_path / "dist"
     mddir.mkdir()
@@ -245,86 +254,45 @@ def test_prepare_metadata_for_build_wheel_variant(fp, tmp_path, config):
     ).read_text() == "label=cpu;properties=cpu :: abi :: cp313"
 
 
+@pytest.mark.parametrize(
+    ("table", "config", "expected"),
+    [
+        pytest.param(
+            False,
+            {"null-variant": "true"},
+            ["[variant] table"],
+            id="null-without-table",
+        ),
+        pytest.param(
+            True,
+            {"variant": "cpu :: abi :: cp314", "variant-label": "cpu"},
+            ["[variant.variants.cpu]", "cpu :: abi :: cp313"],
+            id="label-mismatch",
+        ),
+        pytest.param(
+            True,
+            {"variant": "cpu :: abi :: cp999"},
+            ["cpu :: abi :: cp999", "not supported"],
+            id="invalid-property",
+        ),
+        pytest.param(
+            True,
+            {"variant": "cpu :: abi :: boom"},
+            ["KeyError: {plugin_api}"],
+            id="plugin-error",
+        ),
+    ],
+)
 @pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
-def test_prepare_metadata_null_variant_without_table(fp, tmp_path, capsys):
-    fp.pass_command([sys.executable, fp.any()])
-    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
-    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
+def test_prepare_metadata_variant_errors(tmp_path, capsys, table, config, expected):
+    if table:
+        with Path("pyproject.toml").open("a", encoding="utf-8") as f:
+            f.write(VARIANT_TABLE)
 
     mddir = tmp_path / "dist"
     mddir.mkdir()
     with pytest.raises(SystemExit):
-        prepare_metadata_for_build_wheel(
-            str(mddir), {"experimental": "true", "null-variant": "true"}
-        )
-    assert "[variant] table" in capsys.readouterr().err
-
-
-@pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
-def test_prepare_metadata_variant_label_mismatch(fp, tmp_path, capsys):
-    with Path("pyproject.toml").open("a", encoding="utf-8") as f:
-        f.write(
-            '[variant.default-priorities]\nnamespace = ["cpu"]\n'
-            '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n'
-            '[variant.variants.cpu]\ncpu.abi = ["cp313"]\n'
-        )
-    fp.pass_command([sys.executable, fp.any()])
-    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
-    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
-
-    mddir = tmp_path / "dist"
-    mddir.mkdir()
-    with pytest.raises(SystemExit):
-        prepare_metadata_for_build_wheel(
-            str(mddir),
-            {
-                "experimental": "true",
-                "variant": "cpu :: abi :: cp314",
-                "variant-label": "cpu",
-            },
-        )
+        prepare_metadata_for_build_wheel(str(mddir), {"experimental": "true", **config})
     err = capsys.readouterr().err
-    assert "[variant.variants.cpu]" in err
-    assert "cpu :: abi :: cp313" in err
-
-
-@pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
-def test_prepare_metadata_variant_invalid_property(fp, tmp_path, capsys):
-    with Path("pyproject.toml").open("a", encoding="utf-8") as f:
-        f.write(
-            '[variant.default-priorities]\nnamespace = ["cpu"]\n'
-            '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n'
-        )
-    fp.pass_command([sys.executable, fp.any()])
-    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
-    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
-
-    mddir = tmp_path / "dist"
-    mddir.mkdir()
-    with pytest.raises(SystemExit):
-        prepare_metadata_for_build_wheel(
-            str(mddir), {"experimental": "true", "variant": "cpu :: abi :: cp999"}
-        )
-    err = capsys.readouterr().err
-    assert "cpu :: abi :: cp999" in err
-    assert "not supported" in err
-
-
-@pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
-def test_prepare_metadata_variant_plugin_error(fp, tmp_path, capsys):
-    with Path("pyproject.toml").open("a", encoding="utf-8") as f:
-        f.write(
-            '[variant.default-priorities]\nnamespace = ["cpu"]\n'
-            '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n'
-        )
-    fp.pass_command([sys.executable, fp.any()])
-    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
-    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
-
-    mddir = tmp_path / "dist"
-    mddir.mkdir()
-    with pytest.raises(SystemExit):
-        prepare_metadata_for_build_wheel(
-            str(mddir), {"experimental": "true", "variant": "cpu :: abi :: boom"}
-        )
-    assert "KeyError: {plugin_api}" in capsys.readouterr().err
+    for text in expected:
+        assert text in err
