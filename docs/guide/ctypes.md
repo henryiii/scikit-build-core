@@ -70,6 +70,10 @@ default; you can name any of the [install trees](#install-directories)
 explicitly if you need to. If you set `wheel.install-dir = "mypackage"`, then
 the destination is relative to that instead, and a bare `DESTINATION .` works.
 
+If the library comes from a dependency added with `FetchContent` or
+`add_subdirectory`, see [](#dependency-in-site-packages) to move it into your
+package without a second copy.
+
 ## Find it at runtime with `importlib.resources`
 
 Do **not** compute the path relative to `__file__`---that assumes the package

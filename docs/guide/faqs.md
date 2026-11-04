@@ -83,9 +83,49 @@ scikit-build-core copies the whole install tree into the wheel. A library placed
 there generally will not be found at import time, either.
 
 The cleanest fix is usually to link the dependency statically so there is no
-runtime library to place. If you need it shared, you can redirect the install
-into your package directory and add the runtime hints yourself, or run a
-wheel-repair tool. See [](#dynamic-linking) for all of the options.
+runtime library to place. If you need it shared (for example, for `ctypes`),
+redirect the dependency's install rules into your package before you add it:
+
+```cmake
+include(FetchContent)
+FetchContent_Declare(mydep ...)
+
+set(CMAKE_INSTALL_LIBDIR ${SKBUILD_PROJECT_NAME})
+set(CMAKE_INSTALL_BINDIR ${SKBUILD_PROJECT_NAME})
+FetchContent_MakeAvailable(mydep)
+```
+
+This works if the dependency uses `GNUInstallDirs` for its destinations, which
+most do. Do not add a second `install(TARGETS mydep ...)` of your own: the
+dependency's own install rule still runs, and you get two copies of the library.
+The same applies to `add_subdirectory`.
+
+The dependency also installs its headers and CMake config files. If it puts them
+in install components, keep only the runtime component:
+
+```toml
+[tool.scikit-build]
+install.components = ["Runtime"]
+```
+
+Look in the dependency's `install()` calls for the component names. If it does
+not set any, this option removes everything, so leave it out. Your own
+`install()` calls without a `COMPONENT` use the `Unspecified` component; add it
+to the list to keep them.
+
+Wheels cannot hold symlinks, so a library with `VERSION` and `SOVERSION` set
+(`libmydep.so`, `libmydep.so.1`, `libmydep.so.1.2.3`) becomes several full
+copies. If nothing else links to the library, unset the properties after the
+`FetchContent_MakeAvailable` call to install only one file:
+
+```cmake
+set_property(TARGET mydep PROPERTY VERSION)
+set_property(TARGET mydep PROPERTY SOVERSION)
+```
+
+If the shared library depends on other shared libraries, you must also add
+runtime search paths or run a wheel-repair tool. See [](#dynamic-linking) for
+those options.
 
 [GNUInstallDirs]: inv:cmake:cmake:module#module:GNUInstallDirs
 
