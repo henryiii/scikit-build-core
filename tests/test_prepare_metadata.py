@@ -121,12 +121,8 @@ def test_license_normalization():
     assert metadata.license == "Apache-2.0"
 
 
-@pytest.mark.usefixtures("package_simple_pyproject_ext")
-def test_prepare_metadata_for_build_wheel_variant(fp, monkeypatch, tmp_path):
-    fp.pass_command([sys.executable, fp.any()])
-    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
-    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
-
+@pytest.fixture
+def fake_variantlib(monkeypatch: pytest.MonkeyPatch) -> None:
     variantlib: Any = types.ModuleType("variantlib")
     variantlib.__path__ = []  # mark as a package so submodule imports resolve
     variantlib_api: Any = types.ModuleType("variantlib.api")
@@ -178,6 +174,18 @@ def test_prepare_metadata_for_build_wheel_variant(fp, monkeypatch, tmp_path):
     )
     monkeypatch.setitem(sys.modules, "variantlib.pyproject_toml", variantlib_pyproject)
 
+
+@pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
+def test_prepare_metadata_for_build_wheel_variant(fp, tmp_path):
+    with Path("pyproject.toml").open("a", encoding="utf-8") as f:
+        f.write(
+            '[variant.default-priorities]\nnamespace = ["cpu"]\n'
+            '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n'
+        )
+    fp.pass_command([sys.executable, fp.any()])
+    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
+    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
+
     mddir = tmp_path / "dist"
     mddir.mkdir()
     out = prepare_metadata_for_build_wheel(
@@ -193,3 +201,18 @@ def test_prepare_metadata_for_build_wheel_variant(fp, monkeypatch, tmp_path):
     assert (
         mddir / out / "variant.json"
     ).read_text() == "label=cpu;properties=cpu :: abi :: cp313"
+
+
+@pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
+def test_prepare_metadata_null_variant_without_table(fp, tmp_path, capsys):
+    fp.pass_command([sys.executable, fp.any()])
+    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
+    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
+
+    mddir = tmp_path / "dist"
+    mddir.mkdir()
+    with pytest.raises(SystemExit):
+        prepare_metadata_for_build_wheel(
+            str(mddir), {"experimental": "true", "null-variant": "true"}
+        )
+    assert "[variant] table" in capsys.readouterr().err

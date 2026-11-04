@@ -143,6 +143,11 @@ def get_wheel_variant(
     variant_property: Any = variantlib_models.VariantProperty
     variant_pyproject_toml: Any = variantlib_pyproject.VariantPyProjectToml
 
+    if "variant" not in pyproject:
+        rich_error(
+            "a [variant] table with default-priorities and providers is required to build variant wheels, including the null variant"
+        )
+
     try:
         properties = [
             variant_property.from_str(value)

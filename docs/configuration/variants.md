@@ -18,7 +18,9 @@ ABI, CUDA version, BLAS implementation, etc.).
 ## Declaring providers
 
 Every namespace you provide must have a provider declared in the `[variant]`
-table of `pyproject.toml`, and must be listed in `default-priorities`:
+table of `pyproject.toml`, and must be listed in `default-priorities`. The table
+is required for the null variant too, since [PEP 825][] requires at least one
+namespace in every variant wheel:
 
 ```toml
 [variant]
