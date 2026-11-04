@@ -111,6 +111,20 @@ def test_raw_version_strips_whitespace():
     assert "Version: 2024.01.05" in str(metadata.as_rfc822())
 
 
+def test_variant_table_is_known_top_level_key(caplog: pytest.LogCaptureFixture):
+    caplog.set_level("WARNING")
+    get_standard_metadata(
+        pyproject_dict={
+            "project": {"name": "hello", "version": "1.0"},
+            "variant": {"default-priorities": {"namespace": ["cpu"]}},
+            "other": {},
+        },
+        settings=ScikitBuildSettings(),
+    )
+    messages = [str(r.msg) for r in caplog.records]
+    assert "Unknown keys in top-level of pyproject.toml: other" in messages
+
+
 def test_license_normalization():
     pytest.importorskip("packaging.licenses")
     metadata = get_standard_metadata(
