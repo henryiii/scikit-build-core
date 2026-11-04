@@ -58,7 +58,7 @@ def variant_build_requires(
     (ahead-of-time plugins) are needed at build time; ``requires`` providers
     are install-time only.
     """
-    if not has_variant_config(settings):
+    if not (settings.variant or settings.variant_name or settings.null_variant):
         return []
 
     providers = variant_table.get("providers", {})

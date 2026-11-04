@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import sysconfig
 from pathlib import Path
 
@@ -204,6 +205,43 @@ def test_get_requires_variant_providers(
     assert (
         set(get_requires_for_build_wheel(config)) - {"cmake>=3.15", *ninja} == expected
     )
+
+
+@pytest.mark.parametrize(
+    ("pyproject", "config", "match"),
+    [
+        pytest.param(
+            VARIANT_PYPROJECT,
+            {"variant-label": "foo"},
+            'variant-label requires "variant"',
+            id="label-only",
+        ),
+        pytest.param(
+            VARIANT_PYPROJECT,
+            {"variant": "gpu :: cuda :: 12"},
+            r"namespace 'gpu' has no \[variant.providers.gpu\]",
+            id="missing-namespace",
+        ),
+    ],
+)
+def test_get_requires_variant_errors(
+    fp: FakeProcess,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    pyproject: str,
+    config: dict[str, str | list[str]],
+    match: str,
+):
+    tmp_path.joinpath("pyproject.toml").write_text(pyproject, encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    fp.register(
+        [Path("cmake/path"), "-E", "capabilities"],
+        stdout='{"version":{"string":"3.14.0"}}',
+    )
+    with pytest.raises(SystemExit):
+        get_requires_for_build_wheel({"experimental": "true", **config})
+    assert re.search(match, capsys.readouterr().err)
 
 
 def test_get_requires_for_build_wheel(fp: FakeProcess):
