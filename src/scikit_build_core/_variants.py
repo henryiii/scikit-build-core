@@ -137,6 +137,11 @@ def validate_variant_settings(settings: ScikitBuildSettings) -> None:
 
         rich_error('null-variant is mutually exclusive with "variant-label"')
 
+    if settings.variant_label == "null":
+        from ._logging import rich_error
+
+        rich_error('variant-label "null" is reserved, use null-variant = true instead')
+
 
 def _validate_with_plugins(
     validate_variant: Any, variant: Any, variant_info: Any

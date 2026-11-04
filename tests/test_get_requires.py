@@ -225,6 +225,12 @@ def test_get_requires_variant_providers(
         ),
         pytest.param(
             VARIANT_PYPROJECT,
+            {"variant-label": "null"},
+            "use null-variant",
+            id="null-label",
+        ),
+        pytest.param(
+            VARIANT_PYPROJECT,
             {"variant": "gpu :: cuda :: 12"},
             r"namespace 'gpu' has no \[variant.providers.gpu\]",
             id="missing-namespace",
