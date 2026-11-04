@@ -45,9 +45,17 @@ def has_variant_config(settings: ScikitBuildSettings) -> bool:
 
 def _variant_namespaces(settings: ScikitBuildSettings) -> set[str]:
     # "namespace :: feature :: value"; empty for the null variant
-    return {
-        p.split("::", 1)[0].strip() for p in [*settings.variant_name, *settings.variant]
-    }
+    from ._logging import rich_error
+
+    namespaces = set()
+    for prop in [*settings.variant_name, *settings.variant]:
+        parts = [part.strip() for part in prop.split("::")]
+        if len(parts) != 3 or not all(parts):
+            rich_error(
+                f"variant property {prop!r} is invalid, expected format: 'namespace :: feature :: value'"
+            )
+        namespaces.add(parts[0])
+    return namespaces
 
 
 def variant_build_requires(
@@ -61,16 +69,22 @@ def variant_build_requires(
     if not (settings.variant or settings.variant_name or settings.null_variant):
         return []
 
+    from ._logging import rich_error
+
     providers = variant_table.get("providers", {})
     requires = [VARIANTLIB_BUILD_REQUIREMENT]
     for namespace in sorted(_variant_namespaces(settings)):
-        if namespace not in providers:
-            from ._logging import rich_error
-
+        provider = providers.get(namespace)
+        if provider is None:
             rich_error(
                 f"variant namespace '{namespace}' has no [variant.providers.{namespace}] entry"
             )
-        requires.extend(providers[namespace].get("build-requires", []))
+        if not isinstance(provider, dict):
+            rich_error(f"[variant.providers.{namespace}] must be a table")
+        build_requires = provider.get("build-requires", [])
+        if not isinstance(build_requires, list):
+            rich_error(f"[variant.providers.{namespace}] build-requires must be a list")
+        requires.extend(build_requires)
     return requires
 
 

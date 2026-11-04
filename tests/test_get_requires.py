@@ -222,6 +222,24 @@ def test_get_requires_variant_providers(
             r"namespace 'gpu' has no \[variant.providers.gpu\]",
             id="missing-namespace",
         ),
+        pytest.param(
+            VARIANT_PYPROJECT,
+            {"variant": "garbage"},
+            "namespace :: feature :: value",
+            id="malformed-property",
+        ),
+        pytest.param(
+            '[variant.providers]\ncpu = "cpu-variant-provider"\n',
+            {"variant": "cpu :: abi :: cp313"},
+            r"\[variant.providers.cpu\] must be a table",
+            id="provider-not-table",
+        ),
+        pytest.param(
+            '[variant.providers.cpu]\nbuild-requires = "cpu-variant-provider"\n',
+            {"variant": "cpu :: abi :: cp313"},
+            r"\[variant.providers.cpu\] build-requires must be a list",
+            id="build-requires-not-list",
+        ),
     ],
 )
 def test_get_requires_variant_errors(
