@@ -168,6 +168,14 @@ def get_wheel_variant(
                 )
         elif settings.variant_label:
             variant = variant_description(properties, label=settings.variant_label)
+            # PEP 825: a label maps to exactly one property set per version
+            declared = variant_info.variants.get(settings.variant_label)
+            if declared is not None and {p.to_str() for p in declared.properties} != {
+                p.to_str() for p in variant.properties
+            }:
+                rich_error(
+                    f"variant-label '{settings.variant_label}' properties do not match [variant.variants.{settings.variant_label}], which declares: {', '.join(sorted(p.to_str() for p in declared.properties))}"
+                )
         else:
             variant = variant_description(properties)
         variant_label = variant.label
