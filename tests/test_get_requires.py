@@ -182,7 +182,7 @@ aot.level = ["v3"]
         ),
         pytest.param(
             {"experimental": "true", "variant": "cpu :: abi :: cp313"},
-            {VARIANTLIB_BUILD_REQUIREMENT},
+            {VARIANTLIB_BUILD_REQUIREMENT, "cpu-variant-provider"},
             id="requires-only",
         ),
         pytest.param(
@@ -247,6 +247,12 @@ def test_get_requires_variant_providers(
             {"variant": "cpu :: abi :: cp313"},
             r"\[variant.providers.cpu\] build-requires must be a list",
             id="build-requires-not-list",
+        ),
+        pytest.param(
+            '[variant.providers.cpu]\nrequires = "cpu-variant-provider"\n',
+            {"variant": "cpu :: abi :: cp313"},
+            r"\[variant.providers.cpu\] requires must be a list",
+            id="requires-not-list",
         ),
     ],
 )

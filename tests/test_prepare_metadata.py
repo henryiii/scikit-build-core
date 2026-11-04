@@ -135,6 +135,9 @@ def fake_variantlib(monkeypatch: pytest.MonkeyPatch) -> None:
     class ValidationError(Exception):
         pass
 
+    class PluginError(Exception):
+        pass
+
     class VariantProperty:
         def __init__(self, raw: str) -> None:
             self.raw = raw
@@ -169,13 +172,31 @@ def fake_variantlib(monkeypatch: pytest.MonkeyPatch) -> None:
                 for label, props in pyproject["variant"].get("variants", {}).items()
             }
 
+    # Fake plugin: the only valid property is "cpu :: abi :: cp313"
+    def validate_variant(variant, variant_info):
+        _ = variant_info
+        if any(prop.to_str() == "cpu :: abi :: boom" for prop in variant.properties):
+            msg = "Plugin invocation failed: KeyError: {plugin_api}"
+            raise PluginError(msg)
+        return types.SimpleNamespace(
+            invalid_properties=[
+                prop
+                for prop in variant.properties
+                if prop.to_str() != "cpu :: abi :: cp313"
+            ],
+            unknown_properties=[],
+            multi_value_violations=frozenset(),
+        )
+
     def make_variant_dist_info(variant, *, variant_info):
         _ = variant_info
         raw = ",".join(prop.raw for prop in variant.properties)
         return f"label={variant.label};properties={raw}"
 
     variantlib_api.make_variant_dist_info = make_variant_dist_info
+    variantlib_api.validate_variant = validate_variant
     variantlib_errors.ValidationError = ValidationError
+    variantlib_errors.PluginError = PluginError
     variantlib_models_variant.VariantDescription = VariantDescription
     variantlib_models_variant.VariantProperty = VariantProperty
     variantlib_pyproject.VariantPyProjectToml = VariantPyProjectToml
@@ -265,3 +286,45 @@ def test_prepare_metadata_variant_label_mismatch(fp, tmp_path, capsys):
     err = capsys.readouterr().err
     assert "[variant.variants.cpu]" in err
     assert "cpu :: abi :: cp313" in err
+
+
+@pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
+def test_prepare_metadata_variant_invalid_property(fp, tmp_path, capsys):
+    with Path("pyproject.toml").open("a", encoding="utf-8") as f:
+        f.write(
+            '[variant.default-priorities]\nnamespace = ["cpu"]\n'
+            '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n'
+        )
+    fp.pass_command([sys.executable, fp.any()])
+    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
+    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
+
+    mddir = tmp_path / "dist"
+    mddir.mkdir()
+    with pytest.raises(SystemExit):
+        prepare_metadata_for_build_wheel(
+            str(mddir), {"experimental": "true", "variant": "cpu :: abi :: cp999"}
+        )
+    err = capsys.readouterr().err
+    assert "cpu :: abi :: cp999" in err
+    assert "not supported" in err
+
+
+@pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
+def test_prepare_metadata_variant_plugin_error(fp, tmp_path, capsys):
+    with Path("pyproject.toml").open("a", encoding="utf-8") as f:
+        f.write(
+            '[variant.default-priorities]\nnamespace = ["cpu"]\n'
+            '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n'
+        )
+    fp.pass_command([sys.executable, fp.any()])
+    fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
+    fp.pass_command([fp.program("cmake3"), "-E", "capabilities"])
+
+    mddir = tmp_path / "dist"
+    mddir.mkdir()
+    with pytest.raises(SystemExit):
+        prepare_metadata_for_build_wheel(
+            str(mddir), {"experimental": "true", "variant": "cpu :: abi :: boom"}
+        )
+    assert "KeyError: {plugin_api}" in capsys.readouterr().err

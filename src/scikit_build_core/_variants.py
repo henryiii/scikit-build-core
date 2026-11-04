@@ -74,9 +74,9 @@ def variant_build_requires(
     settings: ScikitBuildSettings, variant_table: Mapping[str, Any]
 ) -> list[str]:
     """
-    Build requirements for a variant build. Only ``build-requires`` providers
-    (ahead-of-time plugins) are needed at build time; ``requires`` providers
-    are install-time only.
+    Build requirements for a variant build: variantlib plus the provider
+    plugins for the namespaces in use, so the properties can be validated
+    at build time (PEP 817).
     """
     if not has_variant_config(settings):
         return []
@@ -93,10 +93,11 @@ def variant_build_requires(
             )
         if not isinstance(provider, dict):
             rich_error(f"[variant.providers.{namespace}] must be a table")
-        build_requires = provider.get("build-requires", [])
-        if not isinstance(build_requires, list):
-            rich_error(f"[variant.providers.{namespace}] build-requires must be a list")
-        requires.extend(build_requires)
+        for key in ("build-requires", "requires"):
+            plugin_requires = provider.get(key, [])
+            if not isinstance(plugin_requires, list):
+                rich_error(f"[variant.providers.{namespace}] {key} must be a list")
+            requires.extend(plugin_requires)
     return requires
 
 
@@ -124,6 +125,36 @@ def validate_variant_settings(settings: ScikitBuildSettings) -> None:
         rich_error('null-variant is mutually exclusive with "variant-label"')
 
 
+def _validate_with_plugins(
+    validate_variant: Any, variant: Any, variant_info: Any
+) -> None:
+    """Query the installed provider plugins (PEP 817 step 5)."""
+    from ._logging import logger, rich_error
+
+    result = validate_variant(variant, variant_info)
+    if result.invalid_properties:
+        rich_error(
+            "variant properties not supported by their provider plugin: "
+            + ", ".join(sorted(p.to_str() for p in result.invalid_properties))
+        )
+    if result.multi_value_violations:
+        rich_error(
+            "variant features given more than one value but not multi-value: "
+            + ", ".join(
+                sorted(
+                    f"{f.namespace} :: {f.feature}"
+                    for f in result.multi_value_violations
+                )
+            )
+        )
+    for prop in result.unknown_properties:
+        logger.warning(
+            "No provider plugin for namespace {!r}, {!r} was not validated",
+            prop.namespace,
+            prop.to_str(),
+        )
+
+
 def get_wheel_variant(
     settings: ScikitBuildSettings,
     pyproject: dict[str, object],
@@ -143,7 +174,9 @@ def get_wheel_variant(
         rich_error("variantlib is required to use variant settings")
 
     make_variant_dist_info = variantlib_api.make_variant_dist_info
+    validate_variant = variantlib_api.validate_variant
     validation_error = variantlib_errors.ValidationError
+    plugin_error = variantlib_errors.PluginError
     variant_description: Any = variantlib_models.VariantDescription
     variant_property: Any = variantlib_models.VariantProperty
     variant_pyproject_toml: Any = variantlib_pyproject.VariantPyProjectToml
@@ -186,12 +219,15 @@ def get_wheel_variant(
             rich_error(
                 f"variant namespace(s) {', '.join(sorted(missing))} are missing from [variant.providers] / [variant.default-priorities]"
             )
+        if variant.properties:
+            _validate_with_plugins(validate_variant, variant, variant_info)
         dist_info_contents = make_variant_dist_info(
             variant,
             variant_info=variant_info,
         ).encode("utf-8")
-    except validation_error as err:
-        rich_error(str(err))
+    except (validation_error, plugin_error) as err:
+        # rich_error formats its arguments; plugin tracebacks may contain braces
+        rich_error(str(err).replace("{", "{{").replace("}", "}}"))
 
     if metadata.version is None:
         msg = "project.version is required to build variant wheel metadata"

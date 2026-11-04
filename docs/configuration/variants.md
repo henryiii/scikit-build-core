@@ -73,10 +73,13 @@ x86_64.level = ["v3"]
 pip wheel . -Cexperimental=true -Cvariant-label=x86_64_v3
 ```
 
-Providers declared with `build-requires` are ahead-of-time plugins. They are
-added to the build requirements and queried at build time to embed their
-supported values into `variant.json`. Providers declared with `requires` are
-install-time plugins and are not installed during the build.
+The provider plugins for the namespaces you select are added to the build
+requirements, and the properties are checked against them before the wheel is
+written. A property the plugin does not list is an error. Providers declared
+with `build-requires` are ahead-of-time plugins; their supported values are also
+embedded into `variant.json` as `static-properties`, so installers do not need
+the plugin. Providers declared with `requires` are queried again at install
+time.
 
 You can also set `experimental = true` under `[tool.scikit-build]` instead of
 passing it every time.
