@@ -156,6 +156,56 @@ def test_get_requires_for_build_with_variant(
     assert (VARIANTLIB_BUILD_REQUIREMENT in hook(config)) is expected
 
 
+VARIANT_PYPROJECT = """\
+[variant.default-priorities]
+namespace = ["aot", "cpu"]
+
+[variant.providers.aot]
+build-requires = ["aot-provider>=1"]
+
+[variant.providers.cpu]
+requires = ["cpu-variant-provider"]
+"""
+
+
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        pytest.param(
+            {"experimental": "true", "variant": "aot :: level :: v3"},
+            {VARIANTLIB_BUILD_REQUIREMENT, "aot-provider>=1"},
+            id="build-requires",
+        ),
+        pytest.param(
+            {"experimental": "true", "variant": "cpu :: abi :: cp313"},
+            {VARIANTLIB_BUILD_REQUIREMENT},
+            id="requires-only",
+        ),
+        pytest.param(
+            {"experimental": "true", "null-variant": "true"},
+            {VARIANTLIB_BUILD_REQUIREMENT},
+            id="null",
+        ),
+    ],
+)
+def test_get_requires_variant_providers(
+    fp: FakeProcess,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    config: dict[str, str | list[str]],
+    expected: set[str],
+):
+    tmp_path.joinpath("pyproject.toml").write_text(VARIANT_PYPROJECT, encoding="utf-8")
+    monkeypatch.chdir(tmp_path)
+    fp.register(
+        [Path("cmake/path"), "-E", "capabilities"],
+        stdout='{"version":{"string":"3.14.0"}}',
+    )
+    assert (
+        set(get_requires_for_build_wheel(config)) - {"cmake>=3.15", *ninja} == expected
+    )
+
+
 def test_get_requires_for_build_wheel(fp: FakeProcess):
     expected = {"cmake>=3.15", *ninja}
     fp.register(

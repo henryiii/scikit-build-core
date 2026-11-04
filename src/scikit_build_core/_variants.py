@@ -8,6 +8,8 @@ from typing import Any
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from ._vendor.pyproject_metadata import StandardMetadata
     from .settings.skbuild_model import ScikitBuildSettings
 
@@ -48,28 +50,28 @@ def _variant_namespaces(settings: ScikitBuildSettings) -> set[str]:
     }
 
 
-def variant_build_requires(settings: ScikitBuildSettings) -> list[str]:
-    if has_variant_config(settings):
-        from pathlib import Path
+def variant_build_requires(
+    settings: ScikitBuildSettings, variant_table: Mapping[str, Any]
+) -> list[str]:
+    """
+    Build requirements for a variant build. Only ``build-requires`` providers
+    (ahead-of-time plugins) are needed at build time; ``requires`` providers
+    are install-time only.
+    """
+    if not has_variant_config(settings):
+        return []
 
-        from ._compat import tomllib
+    providers = variant_table.get("providers", {})
+    requires = [VARIANTLIB_BUILD_REQUIREMENT]
+    for namespace in sorted(_variant_namespaces(settings)):
+        if namespace not in providers:
+            from ._logging import rich_error
 
-        with Path("pyproject.toml").open("rb") as f:
-            pyproject = tomllib.load(f)
-
-        providers = pyproject.get("variant", {}).get("providers", {})
-        requires = [VARIANTLIB_BUILD_REQUIREMENT]
-        # install only build-time providers for the namespaces
-        for namespace in sorted(_variant_namespaces(settings)):
-            if namespace not in providers:
-                from ._logging import rich_error
-
-                rich_error(
-                    f"variant namespace '{namespace}' has no [variant.providers.{namespace}] entry"
-                )
-            requires.extend(providers[namespace].get("build-requires", []))
-        return requires
-    return []
+            rich_error(
+                f"variant namespace '{namespace}' has no [variant.providers.{namespace}] entry"
+            )
+        requires.extend(providers[namespace].get("build-requires", []))
+    return requires
 
 
 def validate_variant_settings(settings: ScikitBuildSettings) -> None:

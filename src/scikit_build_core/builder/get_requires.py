@@ -75,17 +75,25 @@ def _load_scikit_build_settings(
     ).settings
 
 
-def _read_dynamic_metadata() -> list[dict[str, Any]]:
-    """Read the top-level ``[[tool.dynamic-metadata]]`` entries (0.3)."""
+def _read_pyproject() -> dict[str, Any]:
     try:
         with Path("pyproject.toml").open("rb") as f:
-            pyproject = tomllib.load(f)
+            return tomllib.load(f)
     except FileNotFoundError:
-        return []
-    entries: list[dict[str, Any]] = pyproject.get("tool", {}).get(
-        "dynamic-metadata", []
+        return {}
+
+
+def _read_dynamic_metadata() -> list[dict[str, Any]]:
+    """Read the top-level ``[[tool.dynamic-metadata]]`` entries (0.3)."""
+    entries: list[dict[str, Any]] = (
+        _read_pyproject().get("tool", {}).get("dynamic-metadata", [])
     )
     return entries
+
+
+def _read_variant_table() -> dict[str, Any]:
+    table: dict[str, Any] = _read_pyproject().get("variant", {})
+    return table
 
 
 @dataclasses.dataclass(frozen=True)
@@ -95,6 +103,9 @@ class GetRequires:
     )
     dynamic_metadata_entries: Sequence[dict[str, Any]] = dataclasses.field(
         default_factory=_read_dynamic_metadata
+    )
+    variant_table: Mapping[str, Any] = dataclasses.field(
+        default_factory=_read_variant_table
     )
 
     @classmethod
@@ -106,7 +117,7 @@ class GetRequires:
         reader = SettingsReader.from_file(
             "pyproject.toml", config_settings, state=state
         )
-        return cls(reader.settings, reader.dynamic_metadata)
+        return cls(reader.settings, reader.dynamic_metadata, reader.variant)
 
     def cmake(self) -> Generator[str, None, None]:
         if self.settings.fail or os.environ.get("CMAKE_EXECUTABLE", ""):
@@ -205,4 +216,4 @@ class GetRequires:
         if self.settings.fail:
             return
 
-        yield from variant_build_requires(self.settings)
+        yield from variant_build_requires(self.settings, self.variant_table)
