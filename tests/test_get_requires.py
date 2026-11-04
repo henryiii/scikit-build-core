@@ -133,33 +133,24 @@ def write_pyproject(
     )
 
 
+CPU_VARIANT = '[variant.variants.cpu]\ncpu.abi = ["cp313"]\n'
+
+
 @pytest.mark.parametrize(
-    ("hook", "config", "expected"),
+    ("hook", "expected"),
     [
-        (
-            get_requires_for_build_sdist,
-            {"experimental": "true", "variant": "cpu :: abi :: cp313"},
-            False,
-        ),
-        (
-            get_requires_for_build_wheel,
-            {"experimental": "true", "variant": "cpu :: abi :: cp313"},
-            True,
-        ),
-        (
-            get_requires_for_build_editable,
-            {"experimental": "true", "variant-name": "cpu :: abi :: cp313"},
-            True,
-        ),
+        (get_requires_for_build_sdist, False),
+        (get_requires_for_build_wheel, True),
+        (get_requires_for_build_editable, True),
     ],
 )
 def test_get_requires_for_build_with_variant(
-    write_pyproject: Callable[[str], int],
-    hook,
-    config: dict[str, str],
-    expected: bool,
+    write_pyproject: Callable[[str], int], hook, expected: bool
 ):
-    write_pyproject('[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n')
+    write_pyproject(
+        '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n' + CPU_VARIANT
+    )
+    config = {"experimental": "true", "variant-label": "cpu"}
     assert (VARIANTLIB_BUILD_REQUIREMENT in hook(config)) is expected
 
 
@@ -175,87 +166,76 @@ requires = ["cpu-variant-provider"]
 
 [variant.variants.aot_v3]
 aot.level = ["v3"]
+
+[variant.variants.cpu]
+cpu.abi = ["cp313"]
+
+[variant.variants.gpu]
+gpu.cuda = ["12"]
 """
 
 
 @pytest.mark.parametrize(
-    ("config", "expected"),
+    ("label", "expected"),
     [
         pytest.param(
-            {"experimental": "true", "variant": "aot :: level :: v3"},
+            "aot_v3",
             {VARIANTLIB_BUILD_REQUIREMENT, "aot-provider>=1"},
             id="build-requires",
         ),
         pytest.param(
-            {"experimental": "true", "variant": "cpu :: abi :: cp313"},
+            "cpu",
             {VARIANTLIB_BUILD_REQUIREMENT, "cpu-variant-provider"},
             id="requires-only",
         ),
-        pytest.param(
-            {"experimental": "true", "null-variant": "true"},
-            {VARIANTLIB_BUILD_REQUIREMENT},
-            id="null",
-        ),
-        pytest.param(
-            {"experimental": "true", "variant-label": "aot_v3"},
-            {VARIANTLIB_BUILD_REQUIREMENT, "aot-provider>=1"},
-            id="label-only",
-        ),
+        pytest.param("null", {VARIANTLIB_BUILD_REQUIREMENT}, id="null"),
     ],
 )
 def test_get_requires_variant_providers(
-    write_pyproject: Callable[[str], int],
-    config: dict[str, str | list[str]],
-    expected: set[str],
+    write_pyproject: Callable[[str], int], label: str, expected: set[str]
 ):
     write_pyproject(VARIANT_PYPROJECT)
+    config: dict[str, str | list[str]] = {
+        "experimental": "true",
+        "variant-label": label,
+    }
     assert (
         set(get_requires_for_build_wheel(config)) - {"cmake>=3.15", *ninja} == expected
     )
 
 
 @pytest.mark.parametrize(
-    ("pyproject", "config", "match"),
+    ("pyproject", "label", "match"),
     [
         pytest.param(
             VARIANT_PYPROJECT,
-            {"variant-label": "foo"},
+            "foo",
             r"variant-label 'foo' has no \[variant.variants.foo\] entry",
             id="label-not-in-table",
         ),
         pytest.param(
             VARIANT_PYPROJECT,
-            {"variant-label": "null"},
-            "use null-variant",
-            id="null-label",
-        ),
-        pytest.param(
-            VARIANT_PYPROJECT,
-            {"variant": "gpu :: cuda :: 12"},
+            "gpu",
             r"namespace 'gpu' has no \[variant.providers.gpu\]",
             id="missing-namespace",
         ),
         pytest.param(
-            VARIANT_PYPROJECT,
-            {"variant": "garbage"},
-            "namespace :: feature :: value",
-            id="malformed-property",
-        ),
-        pytest.param(
-            '[variant.providers]\ncpu = "cpu-variant-provider"\n',
-            {"variant": "cpu :: abi :: cp313"},
+            '[variant.providers]\ncpu = "cpu-variant-provider"\n' + CPU_VARIANT,
+            "cpu",
             r"\[variant.providers.cpu\] must be a table",
             id="provider-not-table",
         ),
         pytest.param(
-            '[variant.providers.cpu]\nbuild-requires = "cpu-variant-provider"\n',
-            {"variant": "cpu :: abi :: cp313"},
+            '[variant.providers.cpu]\nbuild-requires = "cpu-variant-provider"\n'
+            + CPU_VARIANT,
+            "cpu",
             r"\[variant.providers.cpu\] build-requires must be a list",
             id="build-requires-not-list",
         ),
         pytest.param(
-            '[variant.providers.cpu]\nrequires = "cpu-variant-provider"\n',
-            {"variant": "cpu :: abi :: cp313"},
+            '[variant.providers.cpu]\nrequires = "cpu-variant-provider"\n'
+            + CPU_VARIANT,
+            "cpu",
             r"\[variant.providers.cpu\] requires must be a list",
             id="requires-not-list",
         ),
@@ -265,12 +245,12 @@ def test_get_requires_variant_errors(
     write_pyproject: Callable[[str], int],
     capsys: pytest.CaptureFixture[str],
     pyproject: str,
-    config: dict[str, str | list[str]],
+    label: str,
     match: str,
 ):
     write_pyproject(pyproject)
     with pytest.raises(SystemExit):
-        get_requires_for_build_wheel({"experimental": "true", **config})
+        get_requires_for_build_wheel({"experimental": "true", "variant-label": label})
     assert re.search(match, capsys.readouterr().err)
 
 

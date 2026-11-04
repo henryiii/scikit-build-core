@@ -138,21 +138,6 @@ print(mk_skbuild_docs())
 ```
 
 ```{eval-rst}
-.. confval:: null-variant
-
-  :Type: ``bool``
-  :Default: false
-  :Config-settings: ``null-variant`` or ``skbuild.null-variant``
-  :Environment variable: ``SKBUILD_NULL_VARIANT``
-
-  Experimental PEP 817 null-variant selector.
-
-  This cannot be set in the static ``[tool.scikit-build]`` table; use it in an override, config-settings, or an environment variable.
-
-  .. versionadded:: 1.0
-```
-
-```{eval-rst}
 .. confval:: strict-config
 
   :Type: ``bool``
@@ -168,41 +153,15 @@ print(mk_skbuild_docs())
 ```
 
 ```{eval-rst}
-.. confval:: variant
-
-  :Type: ``list[str]``
-  :Config-settings: ``variant`` or ``skbuild.variant``
-  :Environment variable: ``SKBUILD_VARIANT``
-
-  Experimental PEP 817 variant properties.
-
-  This cannot be set in the static ``[tool.scikit-build]`` table; use it in an override, config-settings, or an environment variable.
-
-  .. versionadded:: 1.0
-```
-
-```{eval-rst}
 .. confval:: variant-label
 
   :Type: ``str``
   :Config-settings: ``variant-label`` or ``skbuild.variant-label``
   :Environment variable: ``SKBUILD_VARIANT_LABEL``
 
-  Experimental PEP 817 wheel variant label override.
+  Experimental wheel variant label to build, from ``[variant.variants]``.
 
-  This cannot be set in the static ``[tool.scikit-build]`` table; use it in an override, config-settings, or an environment variable.
-
-  .. versionadded:: 1.0
-```
-
-```{eval-rst}
-.. confval:: variant-name
-
-  :Type: ``list[str]``
-  :Config-settings: ``variant-name`` or ``skbuild.variant-name``
-  :Environment variable: ``SKBUILD_VARIANT_NAME``
-
-  Experimental PEP 817 variant properties used for wheel metadata selection.
+  The ``null`` label builds the null variant.
 
   This cannot be set in the static ``[tool.scikit-build]`` table; use it in an override, config-settings, or an environment variable.
 

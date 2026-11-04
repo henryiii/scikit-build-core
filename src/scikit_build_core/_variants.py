@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 VARIANTLIB_BUILD_REQUIREMENT = "variantlib>=0.2.1,<0.3.0"
 VARIANT_DIST_INFO_FILENAME = "variant.json"
+NULL_VARIANT_LABEL = "null"
 
 __all__ = [
     "VARIANT_DIST_INFO_FILENAME",
@@ -37,43 +38,24 @@ class WheelVariant:
 
 
 def has_variant_config(settings: ScikitBuildSettings) -> bool:
-    return bool(
-        settings.variant
-        or settings.variant_name
-        or settings.null_variant
-        or settings.variant_label
-    )
+    return bool(settings.variant_label)
 
 
 def _no_label_entry(label: str) -> NoReturn:
     rich_error(
-        "variant-label '{label}' has no [variant.variants.{label}] entry and no variant properties were given",
+        "variant-label '{label}' has no [variant.variants.{label}] entry",
         label=label,
     )
 
 
-def _variant_namespaces(
-    settings: ScikitBuildSettings, variant_table: Mapping[str, Any]
-) -> set[str]:
-    # "namespace :: feature :: value"; empty for the null variant
-    properties = [*settings.variant_name, *settings.variant]
-    if not properties and settings.variant_label:
-        # label-only selection: look the properties up in [variant.variants]
-        variant = variant_table.get("variants", {}).get(settings.variant_label)
-        if not isinstance(variant, dict):
-            _no_label_entry(settings.variant_label)
-        return set(variant)
-
-    namespaces = set()
-    for prop in properties:
-        parts = [part.strip() for part in prop.split("::")]
-        if len(parts) != 3 or not all(parts):
-            rich_error(
-                "variant property {prop!r} is invalid, expected format: 'namespace :: feature :: value'",
-                prop=prop,
-            )
-        namespaces.add(parts[0])
-    return namespaces
+def _variant_namespaces(label: str, variant_table: Mapping[str, Any]) -> set[str]:
+    # PEP 825 reserves "null" for the variant with no properties
+    if label == NULL_VARIANT_LABEL:
+        return set()
+    variant = variant_table.get("variants", {}).get(label)
+    if not isinstance(variant, dict):
+        _no_label_entry(label)
+    return set(variant)
 
 
 def variant_build_requires(
@@ -84,12 +66,12 @@ def variant_build_requires(
     plugins for the namespaces in use, so the properties can be validated
     at build time (PEP 817).
     """
-    if not has_variant_config(settings):
+    if not settings.variant_label:
         return []
 
     providers = variant_table.get("providers", {})
     requires = [VARIANTLIB_BUILD_REQUIREMENT]
-    for namespace in sorted(_variant_namespaces(settings, variant_table)):
+    for namespace in sorted(_variant_namespaces(settings.variant_label, variant_table)):
         provider = providers.get(namespace)
         if provider is None:
             rich_error(
@@ -118,17 +100,6 @@ def validate_variant_settings(settings: ScikitBuildSettings) -> None:
         rich_error(
             "experimental must be enabled currently to use wheel variant settings"
         )
-
-    if settings.null_variant and (settings.variant or settings.variant_name):
-        rich_error(
-            'null-variant is mutually exclusive with "variant" and "variant-name"'
-        )
-
-    if settings.null_variant and settings.variant_label:
-        rich_error('null-variant is mutually exclusive with "variant-label"')
-
-    if settings.variant_label == "null":
-        rich_error('variant-label "null" is reserved, use null-variant = true instead')
 
 
 def _validate_with_plugins(
@@ -164,13 +135,13 @@ def get_wheel_variant(
     pyproject: dict[str, object],
     metadata: StandardMetadata,
 ) -> WheelVariant | None:
-    if not has_variant_config(settings):
+    label = settings.variant_label
+    if not label:
         return None
 
     try:
         variantlib_api = importlib.import_module("variantlib.api")
         variantlib_errors = importlib.import_module("variantlib.errors")
-        variantlib_models = importlib.import_module("variantlib.models.variant")
         variantlib_pyproject = importlib.import_module("variantlib.pyproject_toml")
     except ModuleNotFoundError:
         rich_error("variantlib is required to use variant settings")
@@ -179,8 +150,6 @@ def get_wheel_variant(
     validate_variant = variantlib_api.validate_variant
     validation_error = variantlib_errors.ValidationError
     plugin_error = variantlib_errors.PluginError
-    variant_description: Any = variantlib_models.VariantDescription
-    variant_property: Any = variantlib_models.VariantProperty
     variant_pyproject_toml: Any = variantlib_pyproject.VariantPyProjectToml
 
     if "variant" not in pyproject:
@@ -190,28 +159,9 @@ def get_wheel_variant(
 
     try:
         variant_info = variant_pyproject_toml(pyproject)
-        properties = [
-            variant_property.from_str(value)
-            for value in [*settings.variant_name, *settings.variant]
-        ]
-        label = settings.variant_label
-        declared = variant_info.variants.get(label) if label else None
-        if not properties and label:
-            # label-only selection from [variant.variants.<label>]
-            if declared is None:
-                _no_label_entry(label)
-            variant = declared
-        elif label:
-            variant = variant_description(properties, label=label)
-            # PEP 825: a label maps to exactly one property set per version
-            if declared is not None and declared.properties != variant.properties:
-                rich_error(
-                    "variant-label '{label}' properties do not match [variant.variants.{label}], which declares: {declared}",
-                    label=label,
-                    declared=", ".join(p.to_str() for p in declared.properties),
-                )
-        else:
-            variant = variant_description(properties)
+        variant = variant_info.get_variant_desc(label)
+        if variant is None:
+            _no_label_entry(label)
         missing = {p.namespace for p in variant.properties} - set(
             variant_info.namespace_priorities
         )

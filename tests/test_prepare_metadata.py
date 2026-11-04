@@ -129,6 +129,10 @@ namespace = ["cpu"]
 requires = ["cpu-variant-provider"]
 [variant.variants.cpu]
 cpu.abi = ["cp313"]
+[variant.variants.bad]
+cpu.abi = ["cp999"]
+[variant.variants.boom]
+cpu.abi = ["boom"]
 """
 
 
@@ -142,9 +146,6 @@ def fake_variantlib(fp, monkeypatch: pytest.MonkeyPatch) -> None:
     variantlib.__path__ = []  # mark as a package so submodule imports resolve
     variantlib_api: Any = types.ModuleType("variantlib.api")
     variantlib_errors: Any = types.ModuleType("variantlib.errors")
-    variantlib_models: Any = types.ModuleType("variantlib.models")
-    variantlib_models.__path__ = []
-    variantlib_models_variant: Any = types.ModuleType("variantlib.models.variant")
     variantlib_pyproject: Any = types.ModuleType("variantlib.pyproject_toml")
 
     class ValidationError(Exception):
@@ -159,17 +160,13 @@ def fake_variantlib(fp, monkeypatch: pytest.MonkeyPatch) -> None:
         feature: str
         value: str
 
-        @classmethod
-        def from_str(cls, raw: str):
-            return cls(*(part.strip() for part in raw.split("::")))
-
         def to_str(self) -> str:
             return f"{self.namespace} :: {self.feature} :: {self.value}"
 
     class VariantDescription:
         def __init__(self, properties, label="") -> None:
             self.properties = sorted(properties)
-            self.label = label or "computed"
+            self.label = label
 
     class VariantPyProjectToml:
         def __init__(self, pyproject) -> None:
@@ -187,6 +184,11 @@ def fake_variantlib(fp, monkeypatch: pytest.MonkeyPatch) -> None:
                 )
                 for label, props in pyproject["variant"].get("variants", {}).items()
             }
+
+        def get_variant_desc(self, label):
+            if label == "null":
+                return VariantDescription([], label)
+            return self.variants.get(label)
 
     # Fake plugin: the only valid property is "cpu :: abi :: cp313"
     def validate_variant(variant, variant_info):
@@ -213,78 +215,57 @@ def fake_variantlib(fp, monkeypatch: pytest.MonkeyPatch) -> None:
     variantlib_api.validate_variant = validate_variant
     variantlib_errors.ValidationError = ValidationError
     variantlib_errors.PluginError = PluginError
-    variantlib_models_variant.VariantDescription = VariantDescription
-    variantlib_models_variant.VariantProperty = VariantProperty
     variantlib_pyproject.VariantPyProjectToml = VariantPyProjectToml
 
     monkeypatch.setitem(sys.modules, "variantlib", variantlib)
     monkeypatch.setitem(sys.modules, "variantlib.api", variantlib_api)
     monkeypatch.setitem(sys.modules, "variantlib.errors", variantlib_errors)
-    monkeypatch.setitem(sys.modules, "variantlib.models", variantlib_models)
-    monkeypatch.setitem(
-        sys.modules, "variantlib.models.variant", variantlib_models_variant
-    )
     monkeypatch.setitem(sys.modules, "variantlib.pyproject_toml", variantlib_pyproject)
 
 
 @pytest.mark.parametrize(
-    "config",
+    ("label", "expected"),
     [
-        pytest.param(
-            {"variant": "cpu :: abi :: cp313", "variant-label": "cpu"},
-            id="properties",
-        ),
-        pytest.param({"variant-label": "cpu"}, id="label-only"),
+        pytest.param("cpu", "label=cpu;properties=cpu :: abi :: cp313", id="cpu"),
+        pytest.param("null", "label=null;properties=", id="null"),
     ],
 )
 @pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
-def test_prepare_metadata_for_build_wheel_variant(tmp_path, config):
+def test_prepare_metadata_for_build_wheel_variant(tmp_path, label, expected):
     with Path("pyproject.toml").open("a", encoding="utf-8") as f:
         f.write(VARIANT_TABLE)
 
     mddir = tmp_path / "dist"
     mddir.mkdir()
     out = prepare_metadata_for_build_wheel(
-        str(mddir), {"experimental": "true", **config}
+        str(mddir), {"experimental": "true", "variant-label": label}
     )
 
     assert out == "cmake_example-0.0.1.dist-info"
-    assert (
-        mddir / out / "variant.json"
-    ).read_text() == "label=cpu;properties=cpu :: abi :: cp313"
+    assert (mddir / out / "variant.json").read_text() == expected
 
 
 @pytest.mark.parametrize(
-    ("table", "config", "expected"),
+    ("table", "label", "expected"),
     [
+        pytest.param(False, "null", ["[variant] table"], id="null-without-table"),
         pytest.param(
-            False,
-            {"null-variant": "true"},
-            ["[variant] table"],
-            id="null-without-table",
+            True,
+            "missing",
+            ["[variant.variants.missing]"],
+            id="label-not-in-table",
         ),
         pytest.param(
             True,
-            {"variant": "cpu :: abi :: cp314", "variant-label": "cpu"},
-            ["[variant.variants.cpu]", "cpu :: abi :: cp313"],
-            id="label-mismatch",
-        ),
-        pytest.param(
-            True,
-            {"variant": "cpu :: abi :: cp999"},
+            "bad",
             ["cpu :: abi :: cp999", "not supported"],
             id="invalid-property",
         ),
-        pytest.param(
-            True,
-            {"variant": "cpu :: abi :: boom"},
-            ["KeyError: {plugin_api}"],
-            id="plugin-error",
-        ),
+        pytest.param(True, "boom", ["KeyError: {plugin_api}"], id="plugin-error"),
     ],
 )
 @pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
-def test_prepare_metadata_variant_errors(tmp_path, capsys, table, config, expected):
+def test_prepare_metadata_variant_errors(tmp_path, capsys, table, label, expected):
     if table:
         with Path("pyproject.toml").open("a", encoding="utf-8") as f:
             f.write(VARIANT_TABLE)
@@ -292,7 +273,9 @@ def test_prepare_metadata_variant_errors(tmp_path, capsys, table, config, expect
     mddir = tmp_path / "dist"
     mddir.mkdir()
     with pytest.raises(SystemExit):
-        prepare_metadata_for_build_wheel(str(mddir), {"experimental": "true", **config})
+        prepare_metadata_for_build_wheel(
+            str(mddir), {"experimental": "true", "variant-label": label}
+        )
     err = capsys.readouterr().err
     for text in expected:
         assert text in err

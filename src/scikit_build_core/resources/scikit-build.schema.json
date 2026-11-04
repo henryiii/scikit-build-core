@@ -910,28 +910,9 @@
           "build-dir": {
             "$ref": "#/properties/build-dir"
           },
-          "variant": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Experimental PEP 817 variant properties."
-          },
-          "variant-name": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "description": "Experimental PEP 817 variant properties used for wheel metadata selection."
-          },
           "variant-label": {
             "type": "string",
-            "description": "Experimental PEP 817 wheel variant label override."
-          },
-          "null-variant": {
-            "type": "boolean",
-            "default": false,
-            "description": "Experimental PEP 817 null-variant selector."
+            "description": "Experimental wheel variant label to build, from ``[variant.variants]``."
           },
           "fail": {
             "type": "boolean",

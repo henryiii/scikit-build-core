@@ -36,42 +36,27 @@ plugin-api = "provider_variant_x86_64.plugin:X8664Plugin"
 
 ## Selecting a variant
 
-Because each variant of a build needs different settings, the variant options
-are **only allowed in config-settings or `[[tool.scikit-build.overrides]]`**;
-they cannot be hard-coded at the top level of `pyproject.toml`. The relevant
-settings are:
-
-- `variant` / `variant-name`: variant properties in
-  `namespace :: feature :: value` form (repeatable).
-- `variant-label`: the label used in the wheel filename. Given alone, the
-  properties are read from `[variant.variants.<label>]` in `pyproject.toml`.
-- `null-variant`: build the null variant (mutually exclusive with the above).
-
-When any of these are set, [`variantlib`][] is automatically injected as a build
-requirement, and the experimental flag must be enabled. For example, with `pip`:
-
-```bash
-pip wheel . \
-  -Cexperimental=true \
-  -Cvariant="x86_64 :: level :: v3" \
-  -Cvariant-label=x86_64_v3
-```
-
-This produces a wheel ending in `-x86_64_v3.whl`. Labels may only contain
-lowercase letters, digits, `_`, and `.`. To build the null variant instead, pass
-`-Cnull-variant=true`.
-
-You can also declare the buildable variants in `pyproject.toml` and select one
-by label, as [PEP 817][] describes:
+Declare each variant you can build in `[variant.variants]`, keyed by its label:
 
 ```toml
 [variant.variants.x86_64_v3]
 x86_64.level = ["v3"]
 ```
 
+Then select one with the `variant-label` setting, as [PEP 817][] describes. It
+is **only allowed in config-settings or `[[tool.scikit-build.overrides]]`**; it
+cannot be set at the top level of `[tool.scikit-build]`. When it is set,
+[`variantlib`][] is added as a build requirement, and the experimental flag must
+be enabled. For example, with `pip`:
+
 ```bash
 pip wheel . -Cexperimental=true -Cvariant-label=x86_64_v3
 ```
+
+This produces a wheel ending in `-x86_64_v3.whl`. Labels may only contain
+lowercase letters, digits, `_`, and `.`. The label `null` is reserved by [PEP
+825][] for the null variant, which has no properties; build it with
+`-Cvariant-label=null`. It does not need a `[variant.variants]` entry.
 
 The provider plugins for the namespaces you select are added to the build
 requirements, and the properties are checked against them before the wheel is
