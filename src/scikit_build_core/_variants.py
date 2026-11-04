@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-__lazy_modules__ = {"importlib", "typing"}
+__lazy_modules__ = {"importlib", "typing", f"{__spec__.parent}._logging"}
 
 import dataclasses
 import importlib
 from typing import Any, NoReturn
+
+from ._logging import logger, rich_error
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
@@ -44,8 +46,6 @@ def has_variant_config(settings: ScikitBuildSettings) -> bool:
 
 
 def _no_label_entry(label: str) -> NoReturn:
-    from ._logging import rich_error
-
     rich_error(
         "variant-label '{label}' has no [variant.variants.{label}] entry and no variant properties were given",
         label=label,
@@ -56,8 +56,6 @@ def _variant_namespaces(
     settings: ScikitBuildSettings, variant_table: Mapping[str, Any]
 ) -> set[str]:
     # "namespace :: feature :: value"; empty for the null variant
-    from ._logging import rich_error
-
     properties = [*settings.variant_name, *settings.variant]
     if not properties and settings.variant_label:
         # label-only selection: look the properties up in [variant.variants]
@@ -89,8 +87,6 @@ def variant_build_requires(
     if not has_variant_config(settings):
         return []
 
-    from ._logging import rich_error
-
     providers = variant_table.get("providers", {})
     requires = [VARIANTLIB_BUILD_REQUIREMENT]
     for namespace in sorted(_variant_namespaces(settings, variant_table)):
@@ -119,27 +115,19 @@ def validate_variant_settings(settings: ScikitBuildSettings) -> None:
         return
 
     if not settings.experimental:
-        from ._logging import rich_error
-
         rich_error(
             "experimental must be enabled currently to use wheel variant settings"
         )
 
     if settings.null_variant and (settings.variant or settings.variant_name):
-        from ._logging import rich_error
-
         rich_error(
             'null-variant is mutually exclusive with "variant" and "variant-name"'
         )
 
     if settings.null_variant and settings.variant_label:
-        from ._logging import rich_error
-
         rich_error('null-variant is mutually exclusive with "variant-label"')
 
     if settings.variant_label == "null":
-        from ._logging import rich_error
-
         rich_error('variant-label "null" is reserved, use null-variant = true instead')
 
 
@@ -147,8 +135,6 @@ def _validate_with_plugins(
     validate_variant: Any, variant: Any, variant_info: Any
 ) -> None:
     """Query the installed provider plugins (PEP 817 step 5)."""
-    from ._logging import logger, rich_error
-
     result = validate_variant(variant, variant_info)
     if result.invalid_properties:
         rich_error(
@@ -180,8 +166,6 @@ def get_wheel_variant(
 ) -> WheelVariant | None:
     if not has_variant_config(settings):
         return None
-
-    from ._logging import rich_error
 
     try:
         variantlib_api = importlib.import_module("variantlib.api")
