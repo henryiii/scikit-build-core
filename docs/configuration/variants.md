@@ -43,7 +43,8 @@ settings are:
 
 - `variant` / `variant-name`: variant properties in
   `namespace :: feature :: value` form (repeatable).
-- `variant-label`: override the computed label used in the wheel filename.
+- `variant-label`: the label used in the wheel filename. Given alone, the
+  properties are read from `[variant.variants.<label>]` in `pyproject.toml`.
 - `null-variant`: build the null variant (mutually exclusive with the above).
 
 When any of these are set, [`variantlib`][] is automatically injected as a build
@@ -59,6 +60,18 @@ pip wheel . \
 This produces a wheel ending in `-x86_64_v3.whl`. Labels may only contain
 lowercase letters, digits, `_`, and `.`. To build the null variant instead, pass
 `-Cnull-variant=true`.
+
+You can also declare the buildable variants in `pyproject.toml` and select one
+by label, as [PEP 817][] describes:
+
+```toml
+[variant.variants.x86_64_v3]
+x86_64.level = ["v3"]
+```
+
+```bash
+pip wheel . -Cexperimental=true -Cvariant-label=x86_64_v3
+```
 
 Providers declared with `build-requires` are ahead-of-time plugins. They are
 added to the build requirements and queried at build time to embed their

@@ -166,6 +166,9 @@ build-requires = ["aot-provider>=1"]
 
 [variant.providers.cpu]
 requires = ["cpu-variant-provider"]
+
+[variant.variants.aot_v3]
+aot.level = ["v3"]
 """
 
 
@@ -186,6 +189,11 @@ requires = ["cpu-variant-provider"]
             {"experimental": "true", "null-variant": "true"},
             {VARIANTLIB_BUILD_REQUIREMENT},
             id="null",
+        ),
+        pytest.param(
+            {"experimental": "true", "variant-label": "aot_v3"},
+            {VARIANTLIB_BUILD_REQUIREMENT, "aot-provider>=1"},
+            id="label-only",
         ),
     ],
 )
@@ -213,8 +221,8 @@ def test_get_requires_variant_providers(
         pytest.param(
             VARIANT_PYPROJECT,
             {"variant-label": "foo"},
-            'variant-label requires "variant"',
-            id="label-only",
+            r"variant-label 'foo' has no \[variant.variants.foo\] entry",
+            id="label-not-in-table",
         ),
         pytest.param(
             VARIANT_PYPROJECT,

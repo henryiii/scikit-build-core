@@ -43,12 +43,24 @@ def has_variant_config(settings: ScikitBuildSettings) -> bool:
     )
 
 
-def _variant_namespaces(settings: ScikitBuildSettings) -> set[str]:
+def _variant_namespaces(
+    settings: ScikitBuildSettings, variant_table: Mapping[str, Any]
+) -> set[str]:
     # "namespace :: feature :: value"; empty for the null variant
     from ._logging import rich_error
 
+    properties = [*settings.variant_name, *settings.variant]
+    if not properties and settings.variant_label:
+        # label-only selection: look the properties up in [variant.variants]
+        variant = variant_table.get("variants", {}).get(settings.variant_label)
+        if not isinstance(variant, dict):
+            rich_error(
+                f"variant-label '{settings.variant_label}' has no [variant.variants.{settings.variant_label}] entry and no variant properties were given"
+            )
+        return set(variant)
+
     namespaces = set()
-    for prop in [*settings.variant_name, *settings.variant]:
+    for prop in properties:
         parts = [part.strip() for part in prop.split("::")]
         if len(parts) != 3 or not all(parts):
             rich_error(
@@ -66,14 +78,14 @@ def variant_build_requires(
     (ahead-of-time plugins) are needed at build time; ``requires`` providers
     are install-time only.
     """
-    if not (settings.variant or settings.variant_name or settings.null_variant):
+    if not has_variant_config(settings):
         return []
 
     from ._logging import rich_error
 
     providers = variant_table.get("providers", {})
     requires = [VARIANTLIB_BUILD_REQUIREMENT]
-    for namespace in sorted(_variant_namespaces(settings)):
+    for namespace in sorted(_variant_namespaces(settings, variant_table)):
         provider = providers.get(namespace)
         if provider is None:
             rich_error(
@@ -111,13 +123,6 @@ def validate_variant_settings(settings: ScikitBuildSettings) -> None:
 
         rich_error('null-variant is mutually exclusive with "variant-label"')
 
-    if settings.variant_label and not (
-        settings.variant or settings.variant_name or settings.null_variant
-    ):
-        from ._logging import rich_error
-
-        rich_error('variant-label requires "variant", "variant-name", or null-variant')
-
 
 def get_wheel_variant(
     settings: ScikitBuildSettings,
@@ -149,17 +154,23 @@ def get_wheel_variant(
         )
 
     try:
+        variant_info = variant_pyproject_toml(pyproject)
         properties = [
             variant_property.from_str(value)
             for value in [*settings.variant_name, *settings.variant]
         ]
-        variant = (
-            variant_description(properties, label=settings.variant_label)
-            if settings.variant_label
-            else variant_description(properties)
-        )
+        if not properties and settings.variant_label:
+            # label-only selection from [variant.variants.<label>]
+            variant = variant_info.variants.get(settings.variant_label)
+            if variant is None:
+                rich_error(
+                    f"variant-label '{settings.variant_label}' has no [variant.variants.{settings.variant_label}] entry and no variant properties were given"
+                )
+        elif settings.variant_label:
+            variant = variant_description(properties, label=settings.variant_label)
+        else:
+            variant = variant_description(properties)
         variant_label = variant.label
-        variant_info = variant_pyproject_toml(pyproject)
         missing = {p.namespace for p in variant.properties} - set(
             variant_info.namespace_priorities
         )

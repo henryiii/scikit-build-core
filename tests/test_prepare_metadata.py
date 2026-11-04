@@ -153,6 +153,18 @@ def fake_variantlib(monkeypatch: pytest.MonkeyPatch) -> None:
         def __init__(self, pyproject) -> None:
             self.pyproject = pyproject
             self.namespace_priorities = ["cpu"]
+            self.variants = {
+                label: VariantDescription(
+                    [
+                        VariantProperty(f"{ns} :: {feat} :: {val}")
+                        for ns, feats in props.items()
+                        for feat, vals in feats.items()
+                        for val in vals
+                    ],
+                    label=label,
+                )
+                for label, props in pyproject["variant"].get("variants", {}).items()
+            }
 
     def make_variant_dist_info(variant, *, variant_info):
         _ = variant_info
@@ -175,12 +187,23 @@ def fake_variantlib(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setitem(sys.modules, "variantlib.pyproject_toml", variantlib_pyproject)
 
 
+@pytest.mark.parametrize(
+    "config",
+    [
+        pytest.param(
+            {"variant": "cpu :: abi :: cp313", "variant-label": "cpu"},
+            id="properties",
+        ),
+        pytest.param({"variant-label": "cpu"}, id="label-only"),
+    ],
+)
 @pytest.mark.usefixtures("package_simple_pyproject_ext", "fake_variantlib")
-def test_prepare_metadata_for_build_wheel_variant(fp, tmp_path):
+def test_prepare_metadata_for_build_wheel_variant(fp, tmp_path, config):
     with Path("pyproject.toml").open("a", encoding="utf-8") as f:
         f.write(
             '[variant.default-priorities]\nnamespace = ["cpu"]\n'
             '[variant.providers.cpu]\nrequires = ["cpu-variant-provider"]\n'
+            '[variant.variants.cpu]\ncpu.abi = ["cp313"]\n'
         )
     fp.pass_command([sys.executable, fp.any()])
     fp.pass_command([fp.program("cmake"), "-E", "capabilities"])
@@ -189,12 +212,7 @@ def test_prepare_metadata_for_build_wheel_variant(fp, tmp_path):
     mddir = tmp_path / "dist"
     mddir.mkdir()
     out = prepare_metadata_for_build_wheel(
-        str(mddir),
-        {
-            "experimental": "true",
-            "variant": "cpu :: abi :: cp313",
-            "variant-label": "cpu",
-        },
+        str(mddir), {"experimental": "true", **config}
     )
 
     assert out == "cmake_example-0.0.1.dist-info"
