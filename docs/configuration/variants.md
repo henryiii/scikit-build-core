@@ -56,8 +56,14 @@ pip wheel . \
   -Cvariant-label=x86_64_v3
 ```
 
-This produces a wheel ending in `-x86_64_v3.whl`. To build the null variant
-instead, pass `-Cnull-variant=true`.
+This produces a wheel ending in `-x86_64_v3.whl`. Labels may only contain
+lowercase letters, digits, `_`, and `.`. To build the null variant instead, pass
+`-Cnull-variant=true`.
+
+Providers declared with `build-requires` are ahead-of-time plugins. They are
+added to the build requirements and queried at build time to embed their
+supported values into `variant.json`. Providers declared with `requires` are
+install-time plugins and are not installed during the build.
 
 You can also set `experimental = true` under `[tool.scikit-build]` instead of
 passing it every time.
