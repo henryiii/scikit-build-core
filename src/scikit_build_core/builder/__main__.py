@@ -44,7 +44,7 @@ def main_info(_args: argparse.Namespace | None = None, /) -> None:
     )
 
     if Path("pyproject.toml").is_file():
-        req = GetRequires()
+        req = GetRequires.from_config_settings(None)
         all_req = [
             *req.cmake(),
             *req.ninja(),

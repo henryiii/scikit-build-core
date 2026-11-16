@@ -340,6 +340,7 @@ class SettingsReader:
         self.dynamic_metadata: list[dict[str, Any]] = pyproject.get("tool", {}).get(
             "dynamic-metadata", []
         )
+        self.variant: dict[str, Any] = pyproject.get("variant", {})
 
         # Support for cmake.version='CMakeLists.txt'
         # We will save the value for now since we need the CMakeLists location

@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-__lazy_modules__ = {"importlib", "typing"}
+__lazy_modules__ = {"importlib", "typing", f"{__spec__.parent}._logging"}
 
 import dataclasses
 import importlib
-import re
-from typing import Any
+from typing import Any, NoReturn
+
+from ._logging import logger, rich_error
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from ._vendor.pyproject_metadata import StandardMetadata
     from .settings.skbuild_model import ScikitBuildSettings
 
-VARIANTLIB_BUILD_REQUIREMENT = "variantlib<0.1"
+VARIANTLIB_BUILD_REQUIREMENT = "variantlib>=0.2.3,<0.3.0"
 VARIANT_DIST_INFO_FILENAME = "variant.json"
-# A wheel filename uses "-" as the field separator, so the variant label (the
-# final field) must not contain dashes or whitespace.
-_VARIANT_LABEL_RE = re.compile(r"[A-Za-z0-9_.]+")
+NULL_VARIANT_LABEL = "null"
 
 __all__ = [
     "VARIANT_DIST_INFO_FILENAME",
@@ -37,18 +38,64 @@ class WheelVariant:
 
 
 def has_variant_config(settings: ScikitBuildSettings) -> bool:
-    return bool(
-        settings.variant
-        or settings.variant_name
-        or settings.null_variant
-        or settings.variant_label
+    return bool(settings.variant_label)
+
+
+def _no_label_entry(label: str) -> NoReturn:
+    rich_error(
+        "variant-label '{label}' has no [variant.variants.{label}] entry",
+        label=label,
     )
 
 
-def variant_build_requires(settings: ScikitBuildSettings) -> list[str]:
-    if settings.variant or settings.variant_name or settings.null_variant:
-        return [VARIANTLIB_BUILD_REQUIREMENT]
-    return []
+def _variant_namespaces(label: str, variant_table: Mapping[str, Any]) -> set[str]:
+    # PEP 825 reserves "null" for the variant with no properties
+    if label == NULL_VARIANT_LABEL:
+        return set()
+    variant = variant_table.get("variants", {}).get(label)
+    if not isinstance(variant, dict):
+        _no_label_entry(label)
+    return set(variant)
+
+
+def variant_build_requires(
+    settings: ScikitBuildSettings, variant_table: Mapping[str, Any]
+) -> list[str]:
+    """
+    Build requirements for a variant build: variantlib plus the provider
+    plugins for the namespaces in use, so the properties can be validated
+    at build time (PEP 817).
+    """
+    if not settings.variant_label:
+        return []
+
+    providers = variant_table.get("providers", {})
+    used = _variant_namespaces(settings.variant_label, variant_table)
+    for namespace in sorted(used - providers.keys()):
+        rich_error(
+            "variant namespace '{ns}' has no [variant.providers.{ns}] entry",
+            ns=namespace,
+        )
+
+    requires = [VARIANTLIB_BUILD_REQUIREMENT]
+    for namespace, provider in sorted(providers.items()):
+        if not isinstance(provider, dict):
+            rich_error("[variant.providers.{ns}] must be a table", ns=namespace)
+        # build-requires plugins fill static-properties for every variant,
+        # even ones that do not use the namespace
+        keys = (
+            ["build-requires", "requires"] if namespace in used else ["build-requires"]
+        )
+        for key in keys:
+            plugin_requires = provider.get(key, [])
+            if not isinstance(plugin_requires, list):
+                rich_error(
+                    "[variant.providers.{ns}] {key} must be a list",
+                    ns=namespace,
+                    key=key,
+                )
+            requires.extend(plugin_requires)
+    return requires
 
 
 def validate_variant_settings(settings: ScikitBuildSettings) -> None:
@@ -56,30 +103,37 @@ def validate_variant_settings(settings: ScikitBuildSettings) -> None:
         return
 
     if not settings.experimental:
-        from ._logging import rich_error
-
         rich_error(
-            "experimental must be enabled currently to use PEP 817 variant settings"
+            "experimental must be enabled currently to use wheel variant settings"
         )
 
-    if settings.null_variant and (settings.variant or settings.variant_name):
-        from ._logging import rich_error
 
+def _validate_with_plugins(
+    validate_variant: Any, variant: Any, variant_info: Any
+) -> None:
+    """Query the installed provider plugins (PEP 817 step 5)."""
+    result = validate_variant(variant, variant_info)
+    if result.invalid_properties:
         rich_error(
-            'null-variant is mutually exclusive with "variant" and "variant-name"'
+            "variant properties not supported by their provider plugin: "
+            + ", ".join(sorted(p.to_str() for p in result.invalid_properties))
         )
-
-    if settings.null_variant and settings.variant_label:
-        from ._logging import rich_error
-
-        rich_error('null-variant is mutually exclusive with "variant-label"')
-
-    if settings.variant_label and not (
-        settings.variant or settings.variant_name or settings.null_variant
-    ):
-        from ._logging import rich_error
-
-        rich_error('variant-label requires "variant", "variant-name", or null-variant')
+    if result.multi_value_violations:
+        rich_error(
+            "variant features given more than one value but not multi-value: "
+            + ", ".join(
+                sorted(
+                    f"{f.namespace} :: {f.feature}"
+                    for f in result.multi_value_violations
+                )
+            )
+        )
+    for prop in result.unknown_properties:
+        logger.warning(
+            "No provider plugin for namespace {!r}, {!r} was not validated",
+            prop.namespace,
+            prop.to_str(),
+        )
 
 
 def get_wheel_variant(
@@ -87,50 +141,52 @@ def get_wheel_variant(
     pyproject: dict[str, object],
     metadata: StandardMetadata,
 ) -> WheelVariant | None:
-    if not (settings.variant or settings.variant_name or settings.null_variant):
+    label = settings.variant_label
+    if not label:
         return None
-
-    from ._logging import rich_error
 
     try:
         variantlib_api = importlib.import_module("variantlib.api")
         variantlib_errors = importlib.import_module("variantlib.errors")
-        variantlib_models = importlib.import_module("variantlib.models.variant")
         variantlib_pyproject = importlib.import_module("variantlib.pyproject_toml")
     except ModuleNotFoundError:
-        rich_error("variantlib is required to use PEP 817 variant settings")
+        rich_error("variantlib is required to use variant settings")
 
-    get_variant_label = variantlib_api.get_variant_label
     make_variant_dist_info = variantlib_api.make_variant_dist_info
+    validate_variant = variantlib_api.validate_variant
     validation_error = variantlib_errors.ValidationError
-    variant_description: Any = variantlib_models.VariantDescription
-    variant_property: Any = variantlib_models.VariantProperty
+    plugin_error = variantlib_errors.PluginError
     variant_pyproject_toml: Any = variantlib_pyproject.VariantPyProjectToml
 
+    if "variant" not in pyproject:
+        rich_error(
+            "a [variant] table with default-priorities and providers is required to build variant wheels, including the null variant"
+        )
+
     try:
-        properties = [
-            variant_property.from_str(value)
-            for value in [*settings.variant_name, *settings.variant]
-        ]
-        variant = variant_description(properties)
         variant_info = variant_pyproject_toml(pyproject)
-        variant_label = get_variant_label(variant, settings.variant_label)
+        variant = variant_info.get_variant_desc(label)
+        if variant is None:
+            _no_label_entry(label)
+        missing = {p.namespace for p in variant.properties} - set(
+            variant_info.namespace_priorities
+        )
+        if missing:
+            rich_error(
+                "variant namespace(s) {missing} are missing from [variant.providers] / [variant.default-priorities]",
+                missing=", ".join(sorted(missing)),
+            )
+        if variant.properties:
+            _validate_with_plugins(validate_variant, variant, variant_info)
         dist_info_contents = make_variant_dist_info(
             variant,
             variant_info=variant_info,
-            variant_label=variant_label,
         ).encode("utf-8")
-    except validation_error as err:
-        rich_error(str(err))
-
-    if not _VARIANT_LABEL_RE.fullmatch(variant_label):
-        rich_error(
-            f"Computed variant label {variant_label!r} is not safe for a wheel "
-            "filename; it must match [A-Za-z0-9_.]+ (no dashes or whitespace)"
-        )
+    except (validation_error, plugin_error) as err:
+        rich_error("{err}", err=err)
 
     if metadata.version is None:
         msg = "project.version is required to build variant wheel metadata"
         raise AssertionError(msg)
 
-    return WheelVariant(label=variant_label, dist_info_contents=dist_info_contents)
+    return WheelVariant(label=variant.label, dist_info_contents=dist_info_contents)

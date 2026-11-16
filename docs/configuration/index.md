@@ -914,8 +914,8 @@ experimental = true
 
 The following features currently require this flag:
 
-- **Wheel variants**: [PEP 817][] variant support (`variant`, `variant-name`,
-  `variant-label`, and `null-variant`), added in 1.0. See [](./variants.md).
+- **Wheel variants**: [PEP 817][] variant support (`variant-label`), added in
+  1.0. See [](./variants.md).
 - **Legacy `tool.scikit-build.metadata` plugins**: dynamic metadata providers
   not shipped with scikit-build-core (anything using `provider-path` or a
   provider outside the `scikit_build_core.*` namespace) used through the

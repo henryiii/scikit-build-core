@@ -144,8 +144,8 @@ class ScikitBuildHook(BuildHookInterface):  # type: ignore[type-arg]
             raise ValueError(msg)
 
     def dependencies(self) -> list[str]:
-        settings = self._read_config().settings
-        requires = GetRequires(settings)
+        reader = self._read_config()
+        requires = GetRequires(reader.settings, reader.dynamic_metadata, reader.variant)
 
         if self.target_name == "sdist":
             required = requires.settings.sdist.cmake

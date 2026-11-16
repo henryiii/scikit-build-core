@@ -15,41 +15,71 @@ and a `variant.json` file inside `*.dist-info`. This lets you ship several
 wheels for the same version that differ by hardware or library features (CPU
 ABI, CUDA version, BLAS implementation, etc.).
 
-Because each variant of a build needs different settings, the variant options
-are **only allowed in config-settings or `[[tool.scikit-build.overrides]]`**;
-they cannot be hard-coded at the top level of `pyproject.toml`. The relevant
-settings are:
+## Declaring providers
 
-- `variant` / `variant-name`: variant properties in
-  `namespace :: feature :: value` form (repeatable).
-- `variant-label`: override the computed label used in the wheel filename.
-- `null-variant`: build the null variant (mutually exclusive with the above).
-
-When any of these are set, [`variantlib`][] is automatically injected as a build
-requirement, and the experimental flag must be enabled. For example, to build a
-CPU-ABI variant with `pip`:
-
-```bash
-pip wheel . \
-  -Cexperimental=true \
-  -Cvariant="cpu :: abi :: cp313" \
-  -Cvariant-label=cpu
-```
-
-Or to enable it for everyone via an override (still keeping the per-build values
-in config-settings), put the experimental flag in `pyproject.toml`:
+Every namespace you provide must have a provider declared in the `[variant]`
+table of `pyproject.toml`, and must be listed in `default-priorities`. The table
+is required for the null variant too, since [PEP 825][] requires at least one
+namespace in every variant wheel:
 
 ```toml
-[tool.scikit-build]
-experimental = true
+[variant]
+"$schema" = "https://variants-schema.wheelnext.dev/v0.2.0.json"
+
+[variant.default-priorities]
+namespace = ["x86_64"]
+
+[variant.providers.x86_64]
+requires = ["x86-64-variant-provider>=0.2.3"]
+plugin-api = "x86_64_variant_provider"
 ```
 
-Pass `-Cvariant=...` (and friends) at build time to select which variant to
-produce.
+## Selecting a variant
+
+Declare each variant you can build in `[variant.variants]`, keyed by its label:
+
+```toml
+[variant.variants.x86_64_v3]
+x86_64.level = ["v3"]
+```
+
+Then select one with the `variant-label` setting, as [PEP 817][] describes. It
+is **only allowed in config-settings or `[[tool.scikit-build.overrides]]`**; it
+cannot be set at the top level of `[tool.scikit-build]`. When it is set,
+[`variantlib`][] is added as a build requirement, and the experimental flag must
+be enabled. For example, with `pip`:
+
+```bash
+pip wheel . -Cexperimental=true -Cvariant-label=x86_64_v3
+```
+
+This produces a wheel ending in `-x86_64_v3.whl`. Labels may only contain
+lowercase letters, digits, `_`, and `.`. The label `null` is reserved by [PEP
+825][] for the null variant, which has no properties; build it with
+`-Cvariant-label=null`. It does not need a `[variant.variants]` entry.
+
+The provider plugins for the namespaces you select are added to the build
+requirements, and the properties are checked against them before the wheel is
+written. A property the plugin does not list is an error. Providers declared
+with `build-requires` are ahead-of-time plugins; their supported values are also
+embedded into `variant.json` as `static-properties`, so installers do not need
+the plugin. Providers declared with `requires` are queried again at install
+time.
+
+You can also set `experimental = true` under `[tool.scikit-build]` instead of
+passing it every time.
+
+For more information you can see the available PEPs:
+
+- [PEP 817][]: the overview of the wheel variant proposal
+- [PEP 825][]: the wheel variant format
+- [PEP 850][]: variant providers and the `[variant]` table
 
 <!-- prettier-ignore-start -->
 
 [pep 817]: https://peps.python.org/pep-0817
 [`variantlib`]: https://github.com/wheelnext/variantlib
+[pep 825]: https://peps.python.org/pep-0825
+[pep 850]: https://peps.python.org/pep-0850
 
 <!-- prettier-ignore-end -->

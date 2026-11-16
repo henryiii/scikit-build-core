@@ -127,7 +127,8 @@ def get_standard_metadata(
         )
 
     if settings.strict_config:
-        extra_keys_top = extras_top_level(new_pyproject_dict)
+        # [variant] is the wheel variant table (PEP 817)
+        extra_keys_top = extras_top_level(new_pyproject_dict) - {"variant"}
         if extra_keys_top:
             logger.warning(
                 f"Unknown keys in top-level of pyproject.toml: {', '.join(extra_keys_top)}"
