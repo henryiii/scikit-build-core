@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from ._vendor.pyproject_metadata import StandardMetadata
     from .settings.skbuild_model import ScikitBuildSettings
 
-VARIANTLIB_BUILD_REQUIREMENT = "variantlib>=0.2.1,<0.3.0"
+VARIANTLIB_BUILD_REQUIREMENT = "variantlib>=0.2.3,<0.3.0"
 VARIANT_DIST_INFO_FILENAME = "variant.json"
 NULL_VARIANT_LABEL = "null"
 
@@ -70,17 +70,23 @@ def variant_build_requires(
         return []
 
     providers = variant_table.get("providers", {})
+    used = _variant_namespaces(settings.variant_label, variant_table)
+    for namespace in sorted(used - providers.keys()):
+        rich_error(
+            "variant namespace '{ns}' has no [variant.providers.{ns}] entry",
+            ns=namespace,
+        )
+
     requires = [VARIANTLIB_BUILD_REQUIREMENT]
-    for namespace in sorted(_variant_namespaces(settings.variant_label, variant_table)):
-        provider = providers.get(namespace)
-        if provider is None:
-            rich_error(
-                "variant namespace '{ns}' has no [variant.providers.{ns}] entry",
-                ns=namespace,
-            )
+    for namespace, provider in sorted(providers.items()):
         if not isinstance(provider, dict):
             rich_error("[variant.providers.{ns}] must be a table", ns=namespace)
-        for key in ("build-requires", "requires"):
+        # build-requires plugins fill static-properties for every variant,
+        # even ones that do not use the namespace
+        keys = (
+            ["build-requires", "requires"] if namespace in used else ["build-requires"]
+        )
+        for key in keys:
             plugin_requires = provider.get(key, [])
             if not isinstance(plugin_requires, list):
                 rich_error(

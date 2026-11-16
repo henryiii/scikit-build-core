@@ -185,10 +185,12 @@ gpu.cuda = ["12"]
         ),
         pytest.param(
             "cpu",
-            {VARIANTLIB_BUILD_REQUIREMENT, "cpu-variant-provider"},
-            id="requires-only",
+            {VARIANTLIB_BUILD_REQUIREMENT, "aot-provider>=1", "cpu-variant-provider"},
+            id="requires-and-unused-build-requires",
         ),
-        pytest.param("null", {VARIANTLIB_BUILD_REQUIREMENT}, id="null"),
+        pytest.param(
+            "null", {VARIANTLIB_BUILD_REQUIREMENT, "aot-provider>=1"}, id="null"
+        ),
     ],
 )
 def test_get_requires_variant_providers(
