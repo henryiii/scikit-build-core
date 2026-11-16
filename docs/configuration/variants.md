@@ -30,8 +30,8 @@ namespace in every variant wheel:
 namespace = ["x86_64"]
 
 [variant.providers.x86_64]
-requires = ["provider-variant-x86-64>=0.0.1"]
-plugin-api = "provider_variant_x86_64.plugin:X8664Plugin"
+requires = ["x86-64-variant-provider>=0.2.3"]
+plugin-api = "x86_64_variant_provider"
 ```
 
 ## Selecting a variant
