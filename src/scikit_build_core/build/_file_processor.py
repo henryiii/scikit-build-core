@@ -186,8 +186,12 @@ def each_unignored_file(
 
     exclude_build_dir = build_dir.format(**pyproject_format(dummy=True))
 
+    # A build-dir made only of placeholders would become "*" or "*/*" and
+    # exclude source files, so skip it.
     exclude_lines = (
-        [*EXCLUDE_LINES, exclude_build_dir] if exclude_build_dir else EXCLUDE_LINES
+        [*EXCLUDE_LINES, exclude_build_dir]
+        if exclude_build_dir.strip("*/")
+        else EXCLUDE_LINES
     )
 
     user_exclude_spec = pathspec.GitIgnoreSpec.from_lines(list(exclude))

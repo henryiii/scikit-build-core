@@ -607,6 +607,28 @@ def test_build_dir_exclusion(
     assert result == expected | {Path("build/output.so")}
 
 
+@pytest.mark.parametrize(
+    "build_dir",
+    [
+        "{wheel_tag}",
+        "{wheel_tag}{build_type}",
+        "{wheel_tag}/{build_type}",
+        "/{cache_tag}",
+    ],
+)
+def test_build_dir_only_placeholders_excludes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, build_dir: str
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    _setup_test_filesystem(tmp_path)
+
+    expected = set(each_unignored_file(Path(), mode="default"))
+    assert Path("src/main.py") in expected
+
+    result = set(each_unignored_file(Path(), build_dir=build_dir, mode="default"))
+    assert result == expected
+
+
 def test_complex_combinations(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
